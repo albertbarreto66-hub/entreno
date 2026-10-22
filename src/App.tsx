@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { IconComidas, IconEntrenar, IconHoy, IconProgreso } from './components/icons';
+import { IconChevron, IconComidas, IconEntrenar, IconHoy, IconProgreso } from './components/icons';
 import { ConfirmProvider, ToastProvider } from './components/ui';
 import { ensureInitialized, getSchedule, getSettings } from './lib/app';
 import { addDays, formatLong, todayKey } from './lib/dates';
@@ -64,24 +64,25 @@ export default function App() {
           <div className="app">
             <header className="topbar">
               <div className="datenav">
-                <button className="btn ghost icon" aria-label="Día anterior" onClick={() => setDate(addDays(date, -1))}>‹</button>
+                <button className="btn ghost icon" aria-label="Día anterior" onClick={() => setDate(addDays(date, -1))}><IconChevron dir="left" /></button>
                 <button className="date-title" onClick={() => setDate(today)} aria-label={isToday ? 'Hoy' : 'Volver a hoy'}>
                   <span className="date-main">{isToday ? 'Hoy' : formatLong(date)}</span>
                   <span className="date-sub">{isToday ? formatLong(date) : 'Tocá para volver a hoy'}</span>
                 </button>
-                <button className="btn ghost icon" aria-label="Día siguiente" onClick={() => setDate(addDays(date, 1))} disabled={date >= today}>›</button>
+                <button className="btn ghost icon" aria-label="Día siguiente" onClick={() => setDate(addDays(date, 1))} disabled={date >= today}><IconChevron /></button>
               </div>
               <button className={`avatar ${route === 'ajustes' ? 'on' : ''}`} onClick={() => go('ajustes')} aria-label="Perfil y ajustes">A</button>
             </header>
             {!isToday && <div className="past-banner" role="note">Estás viendo y editando el {formatLong(date)}.</div>}
-            <main className="content">
+            <main className="content"><div className="screen" key={route + date}>
               {route === 'hoy' && <Today />}
               {route === 'entrenar' && <Train />}
               {route === 'comidas' && <Meals />}
               {route === 'progreso' && <Progress />}
               {route === 'ajustes' && <SettingsScreen />}
-            </main>
+            </div></main>
             <nav className="tabbar" aria-label="Navegación principal">
+              {(() => { const tabs = ['hoy', 'entrenar', 'comidas', 'progreso']; const i = tabs.indexOf(route); return i >= 0 ? <span className="tab-indicator" aria-hidden="true" style={{ transform: `translateX(${i * 100}%)` }} /> : null; })()}
               {([['hoy', 'Hoy', <IconHoy />], ['entrenar', 'Entrenar', <IconEntrenar />], ['comidas', 'Comidas', <IconComidas />], ['progreso', 'Progreso', <IconProgreso />]] as const).map(([r, l, ic]) => (
                 <button key={r} className={route === r ? 'on' : ''} aria-current={route === r ? 'page' : undefined} onClick={() => go(r)}>
                   <span className="tab-ic" aria-hidden="true">{ic}</span>{l}

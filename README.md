@@ -116,8 +116,10 @@ El repositorio es público y el código no tiene datos personales. Tu perfil se 
 ## Nutrición
 
 - Catálogo local `src/data/foods.ts`: valores aproximados por 100 g, principalmente de **USDA FoodData Central (SR Legacy)**, con el nombre de cada alimento en esa base. Los que no tienen equivalente claro dicen "Estimación aproximada".
-- El menú de 7 días (`src/data/menu.ts`) solo tiene gramos. Calorías y proteína se **calculan** del catálogo, con resultados entre ~2.500–2.580 kcal y 166–190 g de proteína por día. Una prueba lo verifica.
-- Sin avena, leche ni maní. Huevo en 2 comidas de la semana, ambas con alternativa sin huevo. Queso y yogur solo como opción, desactivada al inicio. Sin suplementos.
+- **Varias opciones por comida** (`src/data/menu.ts`): 8 desayunos, 11 almuerzos, 8 meriendas y 8 cenas, intercambiables. Cada día trae una sugerida y desde Comidas → "Ver opciones" se puede elegir cualquier otra.
+- **Cenas sin carbohidratos:** carne, pollo o pescado con ensaladas o verduras. Sin arroz, papa, batata, pan, fideos ni legumbres. Los carbohidratos del día van en desayuno, almuerzo y merienda.
+- Las opciones solo tienen gramos. Calorías y proteína se **calculan** desde el catálogo. Cada comida está dentro de un rango de calorías parecido (desayuno 520–620, almuerzo 860–960, merienda 480–540, cena 520–600), así que cualquier combinación da un día de ~2.400–2.700 kcal. Los días sugeridos dan 2.509–2.557 kcal y 169–190 g de proteína. Las pruebas lo verifican.
+- Sin avena, leche ni maní. Huevo solo en 2 opciones, siempre con alternativa sin huevo. Queso y yogur solo como opción, desactivada al inicio. Sin suplementos.
 - El texto libre no se estima. Podés cargar valores conocidos, que quedan marcados como "cargado por vos".
 
 ## Estructura

@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNav } from '../App';
 import { NumInput } from '../components/NumInput';
-import { Chip, Field, Segmented, Sheet, useConfirm, useToast } from '../components/ui';
+import { Chip, CountUp, Field, IconBadge, Segmented, Sheet, useConfirm, useToast } from '../components/ui';
+import { IconBowl, IconCup, IconMoon, IconPlus, IconSun } from '../components/icons';
+
+const SLOT_ICON: Record<string, React.ReactNode> = { desayuno: <IconSun />, almuerzo: <IconBowl />, merienda: <IconCup />, cena: <IconMoon />, extra: <IconPlus /> };
 import { FOOD_BY_ID, FOODS, foodLabel } from '../data/foods';
-import { MENU, PREP_DAYS } from '../data/menu';
+import { DINNER_EXCLUDED, MENU, OPTIONS, PREP_DAYS, type MainSlot, type MenuMeal } from '../data/menu';
 import { getSettings, patchSettings } from '../lib/app';
 import { timeHM, weekday } from '../lib/dates';
 import { all, byDate, del, get, kvGet, kvSet, put } from '../lib/db';
@@ -26,6 +29,7 @@ export function Meals() {
     return { meals: meals.sort((a, b) => a.createdAt - b.createdAt), settings, goals };
   }, [date]);
   const [editing, setEditing] = useState<MealLog | null>(null);
+  const [choosing, setChoosing] = useState<MainSlot | null>(null);
 
   // Rutas desde Hoy: registrar / editar-<slot> / otra-<slot>
   useEffect(() => {
@@ -37,6 +41,7 @@ export function Meals() {
       const p = planMealFor(date, slot, data.settings.preferNoEgg);
       setEditing(newMealLog(date, slot, { title: p.variant.title + ' (modificado)', items: p.variant.items.map((i) => ({ ...i })), fromPlan: { day: p.day, slot, noEgg: p.usedNoEgg } }));
     } else if (sub.startsWith('otra-')) setEditing(newMealLog(date, sub.slice(5) as MealSlot));
+    else if (sub.startsWith('opciones-')) setChoosing(sub.slice(9) as MainSlot);
     setTab('dia');
     go('comidas');
   }, [sub, data, date, go]);
@@ -45,17 +50,19 @@ export function Meals() {
   return (
     <div className="stack-lg">
       <Segmented label="Sección" value={tab} onChange={setTab} options={[{ value: 'dia', label: 'Registro' }, { value: 'menu', label: 'Menú' }, { value: 'compras', label: 'Compras' }, { value: 'prep', label: 'Preparación' }]} />
-      {tab === 'dia' && <DayMeals {...data} date={date} onEdit={setEditing} />}
+      {tab === 'dia' && <DayMeals {...data} date={date} onEdit={setEditing} onChoose={setChoosing} />}
       {tab === 'menu' && <MenuView dairy={data.settings.dairyEnabled} preferNoEgg={data.settings.preferNoEgg} today={date} />}
       {tab === 'compras' && <Shopping noEgg={data.settings.preferNoEgg} />}
       {tab === 'prep' && <Prep />}
       <p className="small muted">Calorías y proteínas son estimaciones con un catálogo local de valores aproximados (principalmente USDA FoodData Central, SR Legacy). Las referencias de 2.500–2.700 kcal y 160–190 g de proteína son iniciales y editables, no una prescripción médica.</p>
       {editing && <MealEditor meal={editing} dairy={data.settings.dairyEnabled} onClose={() => setEditing(null)} />}
+      {choosing && <OptionsSheet slot={choosing} date={date} noEgg={data.settings.preferNoEgg} onClose={() => setChoosing(null)}
+        onModify={(m) => { setChoosing(null); setEditing(m); }} />}
     </div>
   );
 }
 
-function DayMeals({ meals, settings, goals, date, onEdit }: { meals: MealLog[]; settings: Awaited<ReturnType<typeof getSettings>>; goals: Awaited<ReturnType<typeof all<'goals'>>>; date: string; onEdit: (m: MealLog) => void }) {
+function DayMeals({ meals, settings, goals, date, onEdit, onChoose }: { meals: MealLog[]; settings: Awaited<ReturnType<typeof getSettings>>; goals: Awaited<ReturnType<typeof all<'goals'>>>; date: string; onEdit: (m: MealLog) => void; onChoose: (s: MainSlot) => void }) {
   const confirm = useConfirm();
   const tot = dayLogTotals(meals);
   const kcalRef = goalFor(goals, 'kcal', date), protRef = goalFor(goals, 'protein', date);
@@ -63,7 +70,7 @@ function DayMeals({ meals, settings, goals, date, onEdit }: { meals: MealLog[]; 
     <>
       <section className="card">
         <h2 className="h2">Total registrado</h2>
-        <p className="big-number">{n0(tot.kcal)} kcal · {n0(tot.protein)} g proteína</p>
+        <div className="macros" style={{ margin: '4px 0 8px' }}><span className="macro kcal" style={{ fontSize: '1.3rem' }}><CountUp value={tot.kcal} /><small>kcal</small></span><span className="macro prot" style={{ fontSize: '1.3rem' }}><CountUp value={tot.protein} /> g<small>proteína</small></span></div>
         <p className="small muted">Referencia inicial editable: {kcalRef ? `${n0(kcalRef)} kcal${kcalRef === 2600 ? " (rango inicial 2.500–2.700)" : ""}` : 'sin referencia'} · {protRef ? `${n0(protRef)} g proteína` : 'sin referencia'}.{tot.withoutData ? ` ${tot.withoutData} comida(s) sin datos nutricionales (texto libre): no se estiman.` : ''}</p>
         <label className="switch"><input type="checkbox" checked={settings.preferNoEgg} onChange={(e) => patchSettings({ preferNoEgg: e.target.checked })} /><span>Usar siempre la alternativa sin huevo</span></label>
       </section>
@@ -76,7 +83,7 @@ function DayMeals({ meals, settings, goals, date, onEdit }: { meals: MealLog[]; 
         return (
           <section key={slot} className="card stack">
             <div className="row between">
-              <h2 className="h2">{SLOT_LABEL[slot]}</h2>
+              <h2 className="h2"><IconBadge tone="meal" size="sm">{SLOT_ICON[slot]}</IconBadge>{SLOT_LABEL[slot]}</h2>
               {logs.length ? <Chip tone="green">✓ Registrado</Chip> : <Chip tone="gray">Pendiente</Chip>}
             </div>
             {logs.map((m) => {
@@ -105,6 +112,7 @@ function DayMeals({ meals, settings, goals, date, onEdit }: { meals: MealLog[]; 
                 <div className="row gap wrap">
                   <button className="btn primary" onClick={() => logPlanMeal(date, slot as Exclude<MealSlot, 'extra'>, settings.preferNoEgg)}>Comí esto</button>
                   <button className="btn secondary" onClick={() => onEdit(newMealLog(date, slot, { title: plan.variant.title + ' (modificado)', items: plan.variant.items.map((i) => ({ ...i })), fromPlan: { day: plan.day, slot, noEgg: plan.usedNoEgg } }))}>Modificar</button>
+                  <button className="btn ghost" onClick={() => onChoose(slot as MainSlot)}>Ver {OPTIONS[slot as MainSlot].length} opciones</button>
                   <button className="btn ghost" onClick={() => onEdit(newMealLog(date, slot))}>Registrar otra</button>
                 </div>
                 {plan.meal.noEgg && !settings.preferNoEgg && (
@@ -131,7 +139,7 @@ function PlanItems({ items }: { items: FoodItem[] }) {
           return <li key={i}><span>{f.name} <span className="muted small">({f.state})</span></span><span>{it.grams} g</span><span className="muted small">{n0(tt.kcal)} kcal · {tt.protein.toFixed(1).replace('.', ',')} g</span></li>;
         })}
       </ul>
-      <p className="small"><b>≈ {n0(t.kcal)} kcal · {n0(t.protein)} g proteína</b></p>
+      <div className="macros"><span className="macro kcal">≈ {n0(t.kcal)}<small>kcal</small></span><span className="macro prot">{n0(t.protein)} g<small>proteína</small></span></div>
     </>
   );
 }
@@ -349,5 +357,39 @@ function Prep() {
       ))}
       <section className="card small muted">Guardá lo cocido en heladera en recipientes cerrados y consumilo dentro de 3–4 días. Lo que no vayas a usar en ese plazo, freezalo.</section>
     </>
+  );
+}
+
+/** Todas las opciones de una comida, intercambiables, con calorías y proteína calculadas. */
+function OptionsSheet({ slot, date, noEgg, onClose, onModify }: { slot: MainSlot; date: string; noEgg: boolean; onClose: () => void; onModify: (m: MealLog) => void }) {
+  const toast = useToast();
+  const plan = planMealFor(date, slot, noEgg);
+  const day = plan.day;
+  const toLog = (o: MenuMeal) => {
+    const v = mealVariant(o, noEgg);
+    return newMealLog(date, slot, { title: v.title, items: v.items.map((i) => ({ ...i })), fromPlan: { day, slot, noEgg: noEgg && !!o.noEgg, optionId: o.id } });
+  };
+  return (
+    <Sheet open onClose={onClose} title={`Opciones de ${SLOT_LABEL[slot].toLowerCase()}`}>
+      {slot === 'cena' && <p className="note small">Cenas sin carbohidratos: carne, pollo o pescado con ensaladas o verduras.</p>}
+      <p className="small muted">Todas tienen calorías y proteína parecidas, así que podés cambiar una por otra sin desarmar el día.</p>
+      {OPTIONS[slot].map((o) => {
+        const v = mealVariant(o, noEgg);
+        const t = sumItems(v.items);
+        return (
+          <div key={o.id} className={`option ${o.id === plan.meal.id ? 'suggested' : ''}`}>
+            <div className="row between"><b>{v.title}</b>{o.id === plan.meal.id && <Chip tone="green">Sugerida hoy</Chip>}</div>
+            <p className="small muted">{v.items.map((it) => `${FOOD_BY_ID[it.foodId].name} ${it.grams} g`).join(' · ')}</p>
+            <div className="macros"><span className="macro kcal">≈ {n0(t.kcal)}<small>kcal</small></span><span className="macro prot">{n0(t.protein)} g<small>proteína</small></span></div>
+            <p className="small">{v.recipe}</p>
+            <div className="row gap wrap">
+              <button className="btn primary small" onClick={async () => { await logPlanMeal(date, slot, noEgg, day, o.id); toast(`${SLOT_LABEL[slot]} registrado`); onClose(); }}>Comí esto</button>
+              <button className="btn ghost small" onClick={() => onModify(toLog(o))}>Modificar</button>
+            </div>
+          </div>
+        );
+      })}
+      <p className="tiny muted">Alimentos que no se usan en la cena: {DINNER_EXCLUDED.map((id) => FOOD_BY_ID[id]?.name).filter(Boolean).join(', ')}.</p>
+    </Sheet>
   );
 }

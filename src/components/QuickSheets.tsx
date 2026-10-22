@@ -7,7 +7,7 @@ import { byDate, del, patchDay, put } from '../lib/db';
 import { n0, n1, parseIntLoose, parseNum, uid } from '../lib/format';
 import type { DaySummary } from '../lib/summary';
 import type { FluidKind } from '../lib/types';
-import { Chip, Field, Segmented, Sheet, useConfirm, useToast } from './ui';
+import { Chip, CountUp, Field, Segmented, Sheet, useConfirm, useToast } from './ui';
 
 export function sourceChip(origin: string | null) {
   if (!origin) return <Chip tone="gray">Sin datos</Chip>;
@@ -35,7 +35,13 @@ export function WaterSheet({ open, onClose, s }: { open: boolean; onClose: () =>
   };
   return (
     <Sheet open={open} onClose={onClose} title="Líquidos">
-      <p className="big-number">{n0(s.fluidTotal)} ml <span className="muted small">registrados{s.fluidGoal ? ` · meta personal ${n0(s.fluidGoal)} ml` : ''}</span></p>
+      <div className="glass-wrap">
+        <div className="glass" aria-hidden="true"><div className="water" style={{ height: `${Math.min(100, (s.fluidTotal / (s.fluidGoal ?? 3000)) * 100)}%` }} /></div>
+        <div>
+          <p className="big-number"><CountUp value={s.fluidTotal} /> ml</p>
+          <p className="muted small">registrados hoy{s.fluidGoal ? ` · meta personal ${n0(s.fluidGoal)} ml` : ' · sin meta fija'}</p>
+        </div>
+      </div>
       <Segmented label="Tipo de bebida" value={kind} onChange={setKind} options={[{ value: 'agua', label: 'Agua' }, { value: 'saborizada', label: 'Saborizada' }, { value: 'otra', label: 'Otra' }]} />
       {kind === 'saborizada' && (
         <div className="stack">

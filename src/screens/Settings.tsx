@@ -184,7 +184,7 @@ function TemplatesSection() {
     <section className="card stack" id="plantillas">
       <h2 className="h2">Plantillas de entrenamiento</h2>
       <p className="small muted">La plantilla es orientativa: tu entrenador puede adaptar ejercicios (especialmente piernas). Los cambios aplican a sesiones nuevas; las sesiones ya registradas no cambian.</p>
-      <Segmented label="Día" value={sel} onChange={setSel} options={tpls.map((d) => ({ value: d.id, label: d.id.slice(0, 3) }))} />
+      <Segmented label="Día" value={sel} onChange={setSel} options={tpls.map((d) => ({ value: d.id, label: d.id[0].toUpperCase() + d.id.slice(1, 3) }))} />
       <Field label="Nombre de la sesión"><input key={t.id} defaultValue={t.name} onBlur={(e) => e.target.value !== t.name && save(tpls.map((d) => (d.id === sel ? { ...d, name: e.target.value } : d)))} /></Field>
       {t.exercises.map((e, i) => (
         <details key={e.id} className="tpl-ex">

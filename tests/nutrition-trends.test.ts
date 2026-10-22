@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FOOD_BY_ID, FOODS } from '../src/data/foods';
-import { MENU } from '../src/data/menu';
+import { DINNER_EXCLUDED, MENU, OPTIONS } from '../src/data/menu';
 import { mealLogTotals, menuDayTotals, shoppingList, substitutes, sumItems } from '../src/lib/nutrition';
 import { trend, weeklyAverages } from '../src/lib/trends';
 import type { MealLog } from '../src/lib/types';
@@ -15,7 +15,7 @@ describe('catálogo y menú', () => {
   });
   it('sin avena, leche ni maní; lácteos solo como opción; huevo siempre con alternativa', () => {
     expect(FOODS.some((f) => /avena|leche|man[ií]/i.test(f.name))).toBe(false);
-    for (const d of MENU) for (const m of Object.values(d.meals)) {
+    for (const m of Object.values(OPTIONS).flat()) {
       expect(m.items.some((i) => FOOD_BY_ID[i.foodId].dairy)).toBe(false);
       if (m.items.some((i) => FOOD_BY_ID[i.foodId].egg)) {
         expect(m.noEgg).toBeTruthy();
@@ -33,6 +33,39 @@ describe('catálogo y menú', () => {
       expect(t.protein, `${d.name} prot`).toBeGreaterThanOrEqual(160);
       expect(t.protein, `${d.name} prot`).toBeLessThanOrEqual(195);
     }
+  });
+  it('las cenas no tienen carbohidratos principales: solo proteína con ensaladas o verduras', () => {
+    expect(OPTIONS.cena.length).toBeGreaterThanOrEqual(6);
+    for (const o of OPTIONS.cena) {
+      for (const v of [o, o.noEgg].filter(Boolean)) {
+        const bad = v!.items.filter((i) => DINNER_EXCLUDED.includes(i.foodId) || ['carbohidrato'].includes(FOOD_BY_ID[i.foodId].group));
+        expect(bad, o.id).toEqual([]);
+      }
+      expect(o.items.some((i) => FOOD_BY_ID[i.foodId].group === 'proteina'), o.id).toBe(true);
+      expect(o.items.some((i) => FOOD_BY_ID[i.foodId].group === 'verdura'), o.id).toBe(true);
+    }
+    for (const d of MENU) expect(DINNER_EXCLUDED.some((id) => d.meals.cena.items.some((i) => i.foodId === id))).toBe(false);
+  });
+  it('varias opciones por comida, con ids únicos y porciones parecidas para poder intercambiarlas', () => {
+    const bands = { desayuno: [520, 620], almuerzo: [860, 960], merienda: [480, 540], cena: [520, 600] } as const;
+    const ids = new Set<string>();
+    for (const [slot, opts] of Object.entries(OPTIONS) as [keyof typeof bands, typeof OPTIONS.cena][]) {
+      expect(opts.length, slot).toBeGreaterThanOrEqual(6);
+      for (const o of opts) {
+        expect(ids.has(o.id), o.id).toBe(false);
+        ids.add(o.id);
+        for (const v of [o, o.noEgg].filter(Boolean)) {
+          const t = sumItems(v!.items);
+          expect(t.kcal, `${o.id} kcal`).toBeGreaterThanOrEqual(bands[slot][0]);
+          expect(t.kcal, `${o.id} kcal`).toBeLessThanOrEqual(bands[slot][1]);
+        }
+      }
+    }
+    // Cualquier combinación de opciones queda cerca de la referencia diaria
+    const minDay = (Object.keys(bands) as (keyof typeof bands)[]).reduce((a, k) => a + Math.min(...OPTIONS[k].map((o) => sumItems(o.items).kcal)), 0);
+    const maxDay = (Object.keys(bands) as (keyof typeof bands)[]).reduce((a, k) => a + Math.max(...OPTIONS[k].map((o) => sumItems(o.items).kcal)), 0);
+    expect(minDay).toBeGreaterThanOrEqual(2380);
+    expect(maxDay).toBeLessThanOrEqual(2750);
   });
   it('cálculo comprobable: 230 g pollo crudo = 276 kcal y 51,75 g proteína', () => {
     const t = sumItems([{ foodId: 'pollo-pechuga-cruda', grams: 230 }]);

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNav } from '../App';
 import { Chart } from '../components/Chart';
-import { Chip, Empty, Field, Segmented, Sheet, useConfirm, useToast } from '../components/ui';
+import { Chip, CountUp, Empty, Field, IconBadge, Segmented, Sheet, useConfirm, useToast } from '../components/ui';
+import { IconBed, IconCamera, IconEntrenar, IconHeart, IconScale, IconSteps } from '../components/icons';
 import { WeightSheet } from '../components/QuickSheets';
 import { STEP_GOAL_MAX } from '../data/profile';
 import { getProfile } from '../lib/app';
@@ -19,7 +20,7 @@ import { trend, weeklyAverages } from '../lib/trends';
 import type { PhotoPose, PhotoRec } from '../lib/types';
 import { KIND_LABEL } from '../health/classify';
 
-const C = { main: '#1f7a44', avg: '#0b4f8a', soft: '#8cc9a4', amber: '#b4690e' };
+const C = { main: 'var(--c-train)', avg: 'var(--c-water)', soft: 'var(--c-steps)', weight: 'var(--c-weight)', sleep: 'var(--c-sleep)', amber: 'var(--c-meal)' };
 
 export function Progress() {
   const [tab, setTab] = useState<'graficos' | 'fotos'>('graficos');
@@ -68,24 +69,25 @@ function Charts() {
 
   return (
     <>
-      <section className="card">
-        <h2 className="h2">Constancia esta semana</h2>
-        <p>Días con algún registro: <b>{daysLogged}</b> · Entrenamientos completados: <b>{completed.filter((s) => s.date >= weekStart(today)).length}</b></p>
-        <p className="small muted">Descansar, estar enfermo o con dolor también es parte del proceso: no resta.</p>
+      <section className="stat-tiles" aria-label="Resumen">
+        <div className="stat-tile"><IconBadge tone="weight" size="sm"><IconScale /></IconBadge><div className="stat-value">{weight.length ? <CountUp value={weight[weight.length - 1].value} format={(v) => v.toLocaleString('es-AR', { maximumFractionDigits: 1 })} /> : '—'}</div><div className="stat-label">último peso (kg)</div></div>
+        <div className="stat-tile"><IconBadge tone="train" size="sm"><IconEntrenar /></IconBadge><div className="stat-value"><CountUp value={completed.filter((s) => s.date >= weekStart(today)).length} /></div><div className="stat-label">entrenos esta semana</div></div>
+        <div className="stat-tile"><IconBadge tone="steps" size="sm"><IconSteps /></IconBadge><div className="stat-value"><CountUp value={daysLogged} /></div><div className="stat-label">días con registros</div></div>
       </section>
+      <p className="small muted">Descansar, estar enfermo o con dolor también es parte del proceso: no resta.</p>
 
       <Segmented label="Período" value={weeks} onChange={setWeeks} options={[{ value: 4, label: '4 sem' }, { value: 8, label: '8 sem' }, { value: 12, label: '12 sem' }, { value: 26, label: '6 meses' }]} />
 
       <section className="card stack">
-        <div className="row between"><h2 className="h2">Peso</h2><button className="btn secondary small" onClick={() => setWeightOpen(true)}>+ Registrar</button></div>
-        {weight.length ? <Chart ariaLabel="Peso registrado y promedio semanal" unit="kg" series={[{ label: 'Registrado', points: weight, style: 'dots', color: C.soft }, { label: 'Promedio semanal', points: wAvg, style: 'line', color: C.avg }]} />
+        <div className="row between"><h2 className="h2"><IconBadge tone="weight" size="sm"><IconScale /></IconBadge>Peso</h2><button className="btn secondary small" onClick={() => setWeightOpen(true)}>+ Registrar</button></div>
+        {weight.length ? <Chart ariaLabel="Peso registrado y promedio semanal" unit="kg" series={[{ label: 'Registrado', points: weight, style: 'dots', color: C.weight }, { label: 'Promedio semanal', points: wAvg, style: 'line', color: C.avg }]} />
           : <Empty>Todavía no registraste peso en este período.</Empty>}
         <p className="small">{trend(weight, 'kg').message}</p>
         {profile.initialWeightKg != null && <p className="small muted">Dato inicial informado: {n1(profile.initialWeightKg)} kg (no es una medición registrada; no se grafica).</p>}
       </section>
 
       <section className="card stack">
-        <h2 className="h2">Cintura</h2>
+        <h2 className="h2"><IconBadge tone="weight" size="sm"><IconScale /></IconBadge>Cintura</h2>
         {waist.length ? <Chart ariaLabel="Cintura" unit="cm" series={[{ label: 'Cintura', points: waist, style: 'dots', color: C.main }]} /> : <Empty>Sin mediciones de cintura en este período.</Empty>}
         {waist.length > 0 && <p className="small">{trend(waist, 'cm').message}</p>}
       </section>
@@ -105,14 +107,14 @@ function Charts() {
       )}
 
       <section className="card stack">
-        <h2 className="h2">Pasos</h2>
+        <h2 className="h2"><IconBadge tone="steps" size="sm"><IconSteps /></IconBadge>Pasos</h2>
         {steps.length ? <Chart ariaLabel="Pasos por día y promedio semanal" unit="pasos" decimals={0} goal={currentGoal} series={[{ label: 'Por día', points: steps, style: 'bars', color: C.soft }, { label: 'Promedio semanal', points: sAvg, style: 'line', color: C.avg }]} />
           : <Empty>Sin pasos registrados en este período.</Empty>}
         <StepReview today={today} currentGoal={currentGoal} />
       </section>
 
       <section className="card stack">
-        <h2 className="h2">Entrenamientos completados por semana</h2>
+        <h2 className="h2"><IconBadge tone="train" size="sm"><IconEntrenar /></IconBadge>Entrenamientos completados por semana</h2>
         {perWeek.size ? <Chart ariaLabel="Entrenamientos por semana" unit="sesiones" decimals={0} series={[{ label: 'Completados', points: [...perWeek].map(([w, n]) => ({ date: w, value: n })), style: 'bars', color: C.main }]} /> : <Empty>Todavía no hay sesiones completadas.</Empty>}
         {sessions.length > 0 && (
           <ul className="list small">
@@ -124,24 +126,24 @@ function Charts() {
       </section>
 
       <section className="card stack">
-        <h2 className="h2">Cargas y repeticiones por ejercicio</h2>
+        <h2 className="h2"><IconBadge tone="train" size="sm"><IconEntrenar /></IconBadge>Cargas y repeticiones por ejercicio</h2>
         {exNames.length ? (
           <>
             <Field label="Ejercicio"><select value={exSel} onChange={(e) => setEx(e.target.value)}>{exNames.map((n) => <option key={n}>{n}</option>)}</select></Field>
             {topKg.length > 0 && <Chart ariaLabel={`Carga máxima en ${exSel}`} unit="kg (serie más pesada)" series={[{ label: 'Carga', points: topKg, style: 'dots', color: C.main }]} />}
-            <Chart ariaLabel={`Repeticiones totales en ${exSel}`} unit="reps efectivas totales" decimals={0} series={[{ label: 'Reps', points: totReps, style: 'bars', color: C.soft }]} />
+            <Chart ariaLabel={`Repeticiones totales en ${exSel}`} unit="reps efectivas totales" decimals={0} series={[{ label: 'Reps', points: totReps, style: 'bars', color: C.main }]} />
           </>
         ) : <Empty>Cuando registres series, vas a ver acá la evolución.</Empty>}
       </section>
 
       <section className="card stack">
-        <h2 className="h2">Sueño</h2>
-        {sleep.length ? <Chart ariaLabel="Horas de sueño" unit="horas" series={[{ label: 'Horas', points: sleep, style: 'bars', color: C.avg }]} /> : <Empty>Sin registros de sueño en este período.</Empty>}
+        <h2 className="h2"><IconBadge tone="sleep" size="sm"><IconBed /></IconBadge>Sueño</h2>
+        {sleep.length ? <Chart ariaLabel="Horas de sueño" unit="horas" series={[{ label: 'Horas', points: sleep, style: 'bars', color: C.sleep }]} /> : <Empty>Sin registros de sueño en este período.</Empty>}
       </section>
 
       {rhr.length > 0 && (
         <section className="card stack">
-          <h2 className="h2">Frecuencia cardíaca en reposo</h2>
+          <h2 className="h2"><IconBadge tone="weight" size="sm"><IconHeart /></IconBadge>Frecuencia cardíaca en reposo</h2>
           <Chart ariaLabel="Frecuencia cardíaca en reposo" unit="lpm" decimals={0} series={[{ label: 'En reposo', points: rhr, style: 'dots', color: C.amber }]} />
         </section>
       )}
@@ -214,7 +216,7 @@ function Photos() {
   return (
     <>
       <section className="card stack">
-        <h2 className="h2">Fotos semanales</h2>
+        <h2 className="h2"><IconBadge tone="weight" size="sm"><IconCamera /></IconBadge>Fotos semanales</h2>
         <p className="small muted">Para comparar mejor: misma luz, misma distancia, misma postura y mismo horario (por ejemplo, el lunes al levantarte). Las fotos quedan solo en este dispositivo. La app no estima grasa corporal ni saca conclusiones de las imágenes.</p>
         <button className="btn primary block" onClick={() => setAddOpen(true)}>+ Agregar foto</button>
       </section>
@@ -308,7 +310,7 @@ function Compare({ photos }: { photos: PhotoRec[] }) {
   return (
     <section className="card stack">
       <h2 className="h2">Comparar</h2>
-      <Segmented label="Pose" value={pose} onChange={(v) => { setPose(v); setAId(''); setBId(''); }} options={poses.map((p) => ({ value: p, label: p }))} />
+      <Segmented label="Pose" value={pose} onChange={(v) => { setPose(v); setAId(''); setBId(''); }} options={poses.map((p) => ({ value: p, label: p[0].toUpperCase() + p.slice(1) }))} />
       <div className="row gap">
         <Field label="Antes"><select value={a?.id} onChange={(e) => setAId(e.target.value)}>{list.map((p) => <option key={p.id} value={p.id}>{formatShort(p.date)}{p.note ? ` · ${p.note}` : ''}</option>)}</select></Field>
         <Field label="Después"><select value={b?.id} onChange={(e) => setBId(e.target.value)}>{list.map((p) => <option key={p.id} value={p.id}>{formatShort(p.date)}{p.note ? ` · ${p.note}` : ''}</option>)}</select></Field>

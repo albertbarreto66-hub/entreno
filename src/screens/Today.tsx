@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNav } from '../App';
 import { SleepSheet, sourceChip, StepsSheet, WaterSheet, WeightSheet } from '../components/QuickSheets';
-import { Check, Chip, Field, Segmented, Sheet, useConfirm } from '../components/ui';
+import { IconBed, IconComidas, IconDrop, IconEntrenar, IconFlame, IconHeart, IconLeaf, IconScale, IconSteps, IconSun, IconBowl, IconCup, IconMoon } from '../components/icons';
+import { Check, Chip, CountUp, Field, IconBadge, Segmented, Sheet, useConfirm } from '../components/ui';
+import { programWeek } from '../lib/training';
 import { STEP_GOAL_MAX } from '../data/profile';
 import { patchSettings, getProfile, getSchedule } from '../lib/app';
 import { formatLong, timeHM, weekday } from '../lib/dates';
@@ -15,6 +17,14 @@ import { loadDaySummary } from '../lib/summary';
 import { MAIN_SLOTS, SLOT_LABEL, type MealSlot } from '../lib/types';
 import { KIND_LABEL } from '../health/classify';
 
+const SLOT_ICON: Record<string, ReactNode> = { desayuno: <IconSun />, almuerzo: <IconBowl />, merienda: <IconCup />, cena: <IconMoon /> };
+
+function greeting(isToday: boolean) {
+  if (!isToday) return 'Registro del día';
+  const h = new Date().getHours();
+  return h < 13 ? 'Buen día' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
+}
+
 type SheetName = null | 'agua' | 'pasos' | 'peso' | 'sueno' | `comida-${MealSlot}`;
 
 export function Today() {
@@ -22,6 +32,7 @@ export function Today() {
   const s = useLive(() => loadDaySummary(date), [date]);
   const schedule = useLive(getSchedule, []);
   const programStart = useLive(() => kvGet<string>('programStart'), []);
+  const profile = useLive(getProfile, []);
   const [sheet, setSheet] = useState<SheetName>(null);
   const confirm = useConfirm();
   const [notes, setNotes] = useState('');
@@ -70,35 +81,38 @@ export function Today() {
       {/* Rutina del día */}
       <section className="card hero">
         <div className="row between">
-          <div>
-            <p className="eyebrow">Rutina del día</p>
-            <h1 className="h1">
-              {s.day.recovery ? 'Día de recuperación' : s.template ? `${s.template.name}` : wd === 0 || wd === 6 ? 'Fin de semana' : 'Sin rutina'}
-            </h1>
-            <p className="muted small">
-              {s.day.recovery ? 'Descansar también es parte del plan.' : s.template ? `${formatLong(date).split(' ')[0]} · gimnasio 08:00–09:10` : 'Sin gimnasio programado. Caminata y comidas como siempre.'}
-            </p>
-          </div>
-          {programStart && <Chip tone="green">Semana {Math.max(1, Math.floor((Date.parse(date) - Date.parse(programStart)) / 604800000) + 1)}</Chip>}
+          <p className="eyebrow">{greeting(isToday)}{profile?.name ? `, ${profile.name}` : ''}</p>
+          {programStart && <Chip tone="green">Semana {programWeek(programStart, date)}</Chip>}
         </div>
+        <h1 className="h1">
+          {s.day.recovery ? 'Día de recuperación' : s.template ? s.template.name : wd === 0 || wd === 6 ? 'Fin de semana' : 'Sin rutina'}
+        </h1>
+        <p className="muted small">
+          {s.day.recovery ? 'Descansar también es parte del plan.' : s.template ? `${formatLong(date).split(' ')[0]} · gimnasio 08:00–09:10 · ${s.template.exercises.length} ejercicios` : 'Sin gimnasio programado. Caminata y comidas como siempre.'}
+        </p>
         {s.template && !s.day.recovery && (
           s.trainingDone
             ? <p className="ok-line">✓ Entrenamiento registrado. ¡Bien ahí!</p>
-            : <button className="btn primary block lg" onClick={() => go('entrenar')}>{activeSession ? 'Continuar entrenamiento' : 'Empezar entrenamiento'}</button>
+            : <button className="btn primary block lg" style={{ marginTop: 12 }} onClick={() => go('entrenar')}><IconEntrenar />{activeSession ? 'Continuar entrenamiento' : 'Empezar entrenamiento'}</button>
         )}
+        <div className="hero-stats">
+          <div className="hero-stat"><div className="stat-label"><IconSteps />Pasos</div><div className="stat-value">{s.steps.value != null ? <CountUp value={s.steps.value} /> : '—'}</div></div>
+          <div className="hero-stat"><div className="stat-label"><IconDrop />Líquidos</div><div className="stat-value">{s.fluidTotal ? <><CountUp value={s.fluidTotal / 1000} format={(v) => v.toLocaleString('es-AR', { maximumFractionDigits: 2 })} /><small>L</small></> : '—'}</div></div>
+          <div className="hero-stat"><div className="stat-label"><IconFlame />Comidas</div><div className="stat-value"><CountUp value={MAIN_SLOTS.filter(mealDone).length} /><small>de 4</small></div></div>
+        </div>
         {s.watchWorkouts.length > 0 && (
-          <p className="small muted">Actividad del reloj: {s.watchWorkouts.map((w) => `${w.label ?? 'Entrenamiento'} ${Math.round(w.value / 60)} min (${w.sourceName})`).join(', ')}. No reemplaza el registro de tus series.</p>
+          <p className="small muted" style={{ marginTop: 10 }}>Actividad del reloj: {s.watchWorkouts.map((w) => `${w.label ?? 'Entrenamiento'} ${Math.round(w.value / 60)} min (${w.sourceName})`).join(', ')}. No reemplaza el registro de tus series.</p>
         )}
-        {nextItem && <p className="small">Próximo en tu horario: <b>{nextItem.time}</b> {nextItem.label}</p>}
+        {nextItem && <p className="small" style={{ marginTop: 10 }}>Próximo: <b>{nextItem.time}</b> · {nextItem.label}</p>}
       </section>
 
       {/* Accesos rápidos */}
       <section className="quick" aria-label="Accesos rápidos">
-        <button className="qbtn" onClick={() => go('entrenar')}><span aria-hidden="true">🏋️</span>Entrenar</button>
-        <button className="qbtn" onClick={() => go('comidas', 'registrar')}><span aria-hidden="true">🍽️</span>Comida</button>
-        <button className="qbtn" onClick={() => setSheet('agua')}><span aria-hidden="true">💧</span>Agua</button>
-        <button className="qbtn" onClick={() => setSheet('pasos')}><span aria-hidden="true">👟</span>Pasos</button>
-        <button className="qbtn" onClick={() => setSheet('peso')}><span aria-hidden="true">⚖️</span>Peso</button>
+        <button className="qbtn" onClick={() => go('entrenar')}><IconBadge tone="train"><IconEntrenar /></IconBadge>Entrenar</button>
+        <button className="qbtn" onClick={() => go('comidas', 'registrar')}><IconBadge tone="meal"><IconComidas /></IconBadge>Comida</button>
+        <button className="qbtn" onClick={() => setSheet('agua')}><IconBadge tone="water"><IconDrop /></IconBadge>Agua</button>
+        <button className="qbtn" onClick={() => setSheet('pasos')}><IconBadge tone="steps"><IconSteps /></IconBadge>Pasos</button>
+        <button className="qbtn" onClick={() => setSheet('peso')}><IconBadge tone="weight"><IconScale /></IconBadge>Peso</button>
       </section>
 
       {/* Checks */}
@@ -107,17 +121,17 @@ export function Today() {
         <div className="checks">
           {MAIN_SLOTS.map((slot) => {
             const logs = s.meals.filter((m) => m.slot === slot);
-            return <Check key={slot} label={`${SLOT_LABEL[slot]} registrad${slot === 'desayuno' || slot === 'almuerzo' ? 'o' : 'a'}`} done={mealDone(slot)}
+            return <Check key={slot} tone="meal" icon={SLOT_ICON[slot]} label={`${SLOT_LABEL[slot]} registrad${slot === 'desayuno' || slot === 'almuerzo' ? 'o' : 'a'}`} done={mealDone(slot)}
               sub={logs.length ? logs.map((l) => l.title || 'Comida').join(', ') : undefined} onClick={() => onMealCheck(slot)} />;
           })}
-          <Check label="Entrenamiento completado" done={s.trainingDone} na={!s.trainingDue && !s.trainingDone}
+          <Check tone="train" icon={<IconEntrenar />} label="Entrenamiento completado" done={s.trainingDone} na={!s.trainingDue && !s.trainingDone}
             sub={s.day.recovery ? 'Día de recuperación' : !s.template ? 'No hay gimnasio programado' : s.day.manualTrainingDone ? 'Marcado sin detalle de series' : activeSession ? 'Sesión en curso' : s.sessions.find((x) => x.status === 'incompleta') ? 'Sesión incompleta guardada' : s.sessions.find((x) => x.status === 'omitida') ? 'Sesión omitida' : undefined}
             onClick={s.trainingDue || s.trainingDone ? onTrainingCheck : undefined} />
-          <Check label="Meta de pasos alcanzada" done={s.stepsMet} onClick={() => setSheet('pasos')}
+          <Check tone="steps" icon={<IconSteps />} label="Meta de pasos alcanzada" done={s.stepsMet} onClick={() => setSheet('pasos')}
             sub={<>{s.steps.value != null ? `${n0(s.steps.value)} / ${n0(s.stepGoal ?? 0)}` : 'Sin datos disponibles'} {s.steps.value != null && sourceChip(s.steps.origin)}{s.steps.value != null && !s.steps.countsForGoal && ' · no cuenta para la meta del reloj'}</>} />
-          <Check label="Líquidos registrados" done={s.fluids.length > 0} onClick={() => setSheet('agua')}
+          <Check tone="water" icon={<IconDrop />} label="Líquidos registrados" done={s.fluids.length > 0} onClick={() => setSheet('agua')}
             sub={s.fluids.length ? `${n0(s.fluidTotal)} ml` : undefined} />
-          <Check label="Sueño registrado" done={s.sleep.hours != null} onClick={() => setSheet('sueno')}
+          <Check tone="sleep" icon={<IconBed />} label="Sueño registrado" done={s.sleep.hours != null} onClick={() => setSheet('sueno')}
             sub={s.sleep.hours != null ? <>{n1(s.sleep.hours)} h {sourceChip(s.sleep.origin === 'manual' ? 'manual' : s.sleep.imported?.kind ?? 'importado')}</> : undefined} />
         </div>
       </section>
@@ -125,7 +139,7 @@ export function Today() {
       {/* Datos del reloj */}
       {(s.restingHr || s.hrDaily.length > 0) && (
         <section className="card">
-          <h2 className="h2">Frecuencia cardíaca</h2>
+          <h2 className="h2"><IconBadge tone="weight" size="sm"><IconHeart /></IconBadge>Frecuencia cardíaca</h2>
           {s.restingHr && <p>En reposo: <b>{Math.round(s.restingHr.value)} lpm</b> {sourceChip(s.restingHr.kind)}</p>}
           {s.hrDaily.map((h) => <p key={h.uuid} className="small">{KIND_LABEL[h.kind]} ({h.sourceName}): mín {Math.round(h.value2 ?? 0)} · prom {Math.round(h.value)} · máx {Math.round(h.value3 ?? 0)} lpm</p>)}
         </section>
@@ -133,7 +147,7 @@ export function Today() {
 
       {/* Cómo estás */}
       <section className="card stack">
-        <h2 className="h2">Cómo te sentís</h2>
+        <h2 className="h2"><IconBadge tone="brand" size="sm"><IconLeaf /></IconBadge>Cómo te sentís</h2>
         <Field label="Dolor o molestias hoy">
           <Segmented label="Dolor o molestias" value={s.day.pain ?? 0} onChange={(v) => patchDay(date, { pain: v as 0 | 1 | 2 | 3 })}
             options={[{ value: 0, label: 'Nada' }, { value: 1, label: 'Leve' }, { value: 2, label: 'Moderado' }, { value: 3, label: 'Fuerte' }]} />
@@ -157,8 +171,8 @@ export function Today() {
         <details className="card">
           <summary className="h2">Horario propuesto</summary>
           <p className="small muted">Son horarios orientativos (editables en Ajustes), no un registro de lo que hiciste.</p>
-          <ul className="list plain">
-            {schedule.map((i) => <li key={i.id} className={nextItem?.id === i.id ? 'next' : ''}><b>{i.time}</b> {i.label}</li>)}
+          <ul className="timeline">
+            {schedule.map((i) => <li key={i.id} className={nextItem?.id === i.id ? 'next' : isToday && nextItem && i.time < nextItem.time ? 'past' : ''}><b>{i.time}</b> {i.label}</li>)}
           </ul>
         </details>
       )}
@@ -177,6 +191,7 @@ export function Today() {
             <p className="small muted">≈ {n0(t.kcal)} kcal · {n0(t.protein)} g proteína (estimado con el catálogo)</p>
             <button className="btn primary block" onClick={async () => { await logPlanMeal(date, slot as Exclude<MealSlot, 'extra'>, s.settings.preferNoEgg); setSheet(null); }}>Comí esto</button>
             <button className="btn secondary block" onClick={() => { setSheet(null); go('comidas', `editar-${slot}`); }}>Modificar</button>
+            <button className="btn ghost block" onClick={() => { setSheet(null); go('comidas', `opciones-${slot}`); }}>Elegir otra opción del menú</button>
             <button className="btn ghost block" onClick={() => { setSheet(null); go('comidas', `otra-${slot}`); }}>Registrar otra comida</button>
           </Sheet>
         );

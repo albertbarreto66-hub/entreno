@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNav } from '../App';
 import { NumInput } from '../components/NumInput';
-import { Chip, Field, Sheet, useConfirm, useToast } from '../components/ui';
+import { celebrate, Chip, Field, Sheet, useConfirm, useToast } from '../components/ui';
+
+function celebrateCenter() {
+  const el = document.querySelector('.hero');
+  if (el) celebrate(el);
+}
 import { PRECHECK_TEXT } from '../data/templates';
 import { getSettings, patchSettings } from '../lib/app';
 import { formatLong, formatShort } from '../lib/dates';
@@ -147,14 +153,14 @@ function SessionView({ session, templates, settings, exStates, days, allSessions
 
   const finish = async () => {
     const st = finishStatus(session);
-    if (st === 'completada') { await update((s) => ({ ...s, status: 'completada', finishedAt: Date.now() })); return; }
+    if (st === 'completada') { await update((s) => ({ ...s, status: 'completada', finishedAt: Date.now() })); celebrateCenter(); return; }
     const r = await confirm({
       title: 'Quedaron series sin marcar',
       body: 'Podés guardarla como incompleta (está bien) o marcarla completada si hiciste todo y no lo anotaste.',
       ok: 'Guardar como incompleta', extra: [{ label: 'Marcar completada igual', value: 'done' }], cancel: 'Seguir entrenando',
     });
     if (r === 'ok') await update((s) => ({ ...s, status: 'incompleta', finishedAt: Date.now() }));
-    if (r === 'done') await update((s) => ({ ...s, status: 'completada', finishedAt: Date.now() }));
+    if (r === 'done') { await update((s) => ({ ...s, status: 'completada', finishedAt: Date.now() })); celebrateCenter(); }
   };
 
   return (
@@ -184,7 +190,7 @@ function SessionView({ session, templates, settings, exStates, days, allSessions
       {session.exercises.map((e, i) => {
         const t = tpl?.exercises.find((x) => x.id === e.exerciseId);
         const hist = exerciseHistory(allSessions, e.exerciseId, e.name, session.id).filter((h) => h.session.date <= session.date);
-        return <ExerciseCard key={e.exerciseId + i} e={e} t={t} hist={hist} exState={exStates.find((x) => x.exerciseId === e.exerciseId)}
+        return <ExerciseCard key={e.exerciseId + i} e={e} index={i} t={t} hist={hist} exState={exStates.find((x) => x.exerciseId === e.exerciseId)}
           settings={settings} dayMap={dayMap} onChange={(fn) => updEx(i, fn)} editable={session.status !== 'omitida'} />;
       })}
 
@@ -198,8 +204,8 @@ function SessionView({ session, templates, settings, exStates, days, allSessions
   );
 }
 
-function ExerciseCard({ e, t, hist, exState, settings, dayMap, onChange, editable }: {
-  e: ExerciseLog; t?: ExerciseTemplate; hist: ReturnType<typeof exerciseHistory>; exState?: ExerciseState;
+function ExerciseCard({ e, index, t, hist, exState, settings, dayMap, onChange, editable }: {
+  e: ExerciseLog; index: number; t?: ExerciseTemplate; hist: ReturnType<typeof exerciseHistory>; exState?: ExerciseState;
   settings: Data['settings']; dayMap: Map<string, DayLog>; onChange: (fn: (e: ExerciseLog) => void) => void; editable: boolean;
 }) {
   const [skipOpen, setSkipOpen] = useState(false);
@@ -232,9 +238,15 @@ function ExerciseCard({ e, t, hist, exState, settings, dayMap, onChange, editabl
 
   return (
     <section className="card exercise">
-      <div className="row between">
-        <h3 className="h3">{e.name}</h3>
-        <Chip tone={done >= e.plannedSets ? 'green' : 'neutral'}>{done}/{e.plannedSets} {done >= e.plannedSets ? '✓' : ''}</Chip>
+      <div className="ex-head">
+        <span className="ex-num" aria-hidden="true">{index + 1}</span>
+        <div className="grow" style={{ minWidth: 0 }}>
+          <div className="row between">
+            <h3 className="h3">{e.name}</h3>
+            <Chip tone={done >= e.plannedSets ? 'green' : 'neutral'}>{done}/{e.plannedSets} {done >= e.plannedSets ? '✓' : ''}</Chip>
+          </div>
+          <div className="ex-progress" aria-hidden="true"><i style={{ width: `${Math.min(100, (done / Math.max(1, e.plannedSets)) * 100)}%` }} /></div>
+        </div>
       </div>
       <p className="small muted">{e.plannedSets} series × {e.repMin === e.repMax ? e.repMin : `${e.repMin}–${e.repMax}`} reps{t?.perSide ? ' por lado' : ''} · descanso {fmtRest(restSec)}{t?.main ? ' · principal' : ''}</p>
       {t?.caution && <p className="small warn-text">⚠ {t.caution}</p>}
@@ -375,16 +387,23 @@ function RestTimer() {
   return (
     <>
     <div className="rt-spacer" aria-hidden="true" />
+    {createPortal(
     <div className={`resttimer ${left <= 0 ? 'over' : ''}`} role="timer" aria-live="off">
-      <div>
-        <div className="small">{left > 0 ? 'Descanso' : 'Descanso cumplido'} · {t.label}</div>
-        <div className="rt-time">{left > 0 ? `${mm}:${String(ss).padStart(2, '0')}` : '¡A la próxima serie!'}</div>
+      <div className="rt-left">
+        <svg className="rt-ring" viewBox="0 0 54 54" aria-hidden="true">
+          <circle className="bg" cx="27" cy="27" r="23" />
+          <circle className="fg" cx="27" cy="27" r="23" strokeDasharray={2 * Math.PI * 23} strokeDashoffset={2 * Math.PI * 23 * (1 - Math.max(0, Math.min(1, left / (t.total || 1))))} />
+        </svg>
+        <div style={{ minWidth: 0 }}>
+          <div className="small" style={{ opacity: .8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{left > 0 ? 'Descanso' : 'Descanso cumplido'} · {t.label}</div>
+          <div className="rt-time">{left > 0 ? `${mm}:${String(ss).padStart(2, '0')}` : '¡A la próxima serie!'}</div>
+        </div>
       </div>
       <div className="row gap">
         <button className="btn secondary small" onClick={() => kvSet('restTimer', { ...t, endAt: Math.max(t.endAt, Date.now()) + 30000 }, true)}>+30 s</button>
         <button className="btn ghost small" onClick={() => kvSet('restTimer', null, true)}>Cerrar</button>
       </div>
-    </div>
+    </div>, document.body)}
     </>
   );
 }

@@ -61,7 +61,7 @@ export interface MealLog {
   freeText?: string;
   manualKcal?: number | null; // ingresado por el usuario para texto libre
   manualProtein?: number | null;
-  fromPlan?: { day: number; slot: MealSlot; noEgg?: boolean } | null;
+  fromPlan?: { day: number; slot: MealSlot; noEgg?: boolean; optionId?: string } | null;
   hunger?: number | null; // 1-5
   satiety?: number | null; // 1-5
   bloating?: number | null; // 0-3

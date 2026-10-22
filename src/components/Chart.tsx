@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { diffDays, formatShort } from '../lib/dates';
 
 export interface Series { label: string; points: { date: string; value: number }[]; style: 'dots' | 'line' | 'bars'; color: string }
@@ -15,6 +16,7 @@ const W = 340;
 
 /** Gráfico SVG simple. Solo dibuja días con datos: no interpola ni inventa valores. */
 export function Chart({ series, unit, height = 180, goal, decimals = 1, ariaLabel }: Props) {
+  const gid = useId().replace(/:/g, '');
   const pts = series.flatMap((s) => s.points);
   if (!pts.length) return null;
   const dates = pts.map((p) => p.date).sort();
@@ -49,17 +51,24 @@ export function Chart({ series, unit, height = 180, goal, decimals = 1, ariaLabe
         {series.map((s) => {
           const sp = [...s.points].sort((a, b) => a.date.localeCompare(b.date));
           if (s.style === 'bars') return sp.map((p) => (
-            <rect key={s.label + p.date} x={x(p.date) - barW / 2} y={y(p.value)} width={barW} height={Math.max(0, y(lo) - y(p.value))} fill={s.color} rx={2}>
+            <rect className="bar" key={s.label + p.date} x={x(p.date) - barW / 2} y={y(p.value)} width={barW} height={Math.max(0, y(lo) - y(p.value))} style={{ fill: s.color }} rx={3}>
               <title>{`${formatShort(p.date)}: ${fmt(p.value)} ${unit}`}</title>
             </rect>
           ));
           if (s.style === 'line') return (
             <g key={s.label}>
-              <polyline fill="none" stroke={s.color} strokeWidth={2.5} strokeDasharray="6 4" points={sp.map((p) => `${x(p.date)},${y(p.value)}`).join(' ')} />
-              {sp.map((p) => <rect key={p.date} x={x(p.date) - 4} y={y(p.value) - 4} width={8} height={8} fill={s.color}><title>{`${s.label} ${formatShort(p.date)}: ${fmt(p.value)} ${unit}`}</title></rect>)}
+              <defs>
+                <linearGradient id={gid + s.label.replace(/\W/g, '')} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" style={{ stopColor: s.color, stopOpacity: 0.28 }} />
+                  <stop offset="100%" style={{ stopColor: s.color, stopOpacity: 0 }} />
+                </linearGradient>
+              </defs>
+              {sp.length > 1 && <polygon fill={`url(#${gid + s.label.replace(/\W/g, '')})`} points={`${x(sp[0].date)},${y(lo)} ${sp.map((p) => `${x(p.date)},${y(p.value)}`).join(' ')} ${x(sp[sp.length - 1].date)},${y(lo)}`} />}
+              <polyline className="draw" fill="none" style={{ stroke: s.color }} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" points={sp.map((p) => `${x(p.date)},${y(p.value)}`).join(' ')} />
+              {sp.map((p) => <rect key={p.date} x={x(p.date) - 4} y={y(p.value) - 4} width={8} height={8} rx={2} style={{ fill: s.color }}><title>{`${s.label} ${formatShort(p.date)}: ${fmt(p.value)} ${unit}`}</title></rect>)}
             </g>
           );
-          return sp.map((p) => <circle key={s.label + p.date} cx={x(p.date)} cy={y(p.value)} r={3.5} fill={s.color}><title>{`${formatShort(p.date)}: ${fmt(p.value)} ${unit}`}</title></circle>);
+          return sp.map((p) => <circle key={s.label + p.date} cx={x(p.date)} cy={y(p.value)} r={4} style={{ fill: s.color, stroke: 'var(--surface)' }} strokeWidth={1.5}><title>{`${formatShort(p.date)}: ${fmt(p.value)} ${unit}`}</title></circle>);
         })}
         <text x={L} y={height - 6} className="axis">{formatShort(d0)}</text>
         <text x={W - R} y={height - 6} textAnchor="end" className="axis">{formatShort(d1)}</text>
