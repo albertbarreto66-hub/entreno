@@ -16,6 +16,7 @@ import { applyReminders, notificationSupport, requestPermission } from '../lib/n
 import { getTemplates } from '../lib/training';
 import type { DayTemplate, GoalKind, Profile, ScheduleItem } from '../lib/types';
 import { HealthPanel } from './HealthPanel';
+import { checkForUpdate } from '../lib/update';
 
 const LABELS: Record<string, string> = { kv: 'Ajustes y perfil', days: 'Días (notas, pasos, sueño)', meals: 'Comidas', fluids: 'Líquidos', sessions: 'Sesiones de entrenamiento', body: 'Peso y cintura', photos: 'Fotos', goals: 'Historial de metas', exState: 'Progresiones aceptadas', health: 'Datos importados de Salud' };
 
@@ -305,7 +306,14 @@ function PrivacySection() {
         if (!(await confirm({ title: '¿Seguro?', body: 'Última confirmación.', ok: 'Sí, borrar todo', danger: true }))) return;
         await wipeAll(); location.hash = '#/hoy'; location.reload();
       }}>Borrar todos los datos</button>
-      <p className="tiny muted">Versión web {__APP_VERSION__}. <Chip tone="gray">Sin conexión a servicios externos</Chip></p>
+      <div className="row between wrap">
+        <p className="tiny muted">Versión {__APP_VERSION__} · publicada {new Date(__BUILD_TIME__).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+        <button className="btn ghost small" onClick={async () => {
+          const r = await checkForUpdate();
+          toast(r === 'actualizando' ? 'Hay una versión nueva: actualizando…' : r === 'al-dia' ? 'Ya tenés la última versión' : r === 'sin-conexion' ? 'Sin conexión: probá con internet' : 'Las actualizaciones automáticas no están disponibles en este modo');
+        }}>Buscar actualización</button>
+      </div>
+      <Chip tone="gray">Sin conexión a servicios externos</Chip>
     </section>
   );
 }

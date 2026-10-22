@@ -12,12 +12,13 @@ const perfil = process.env.PERFIL_PRIVADO === '1' && existsSync(perfilPath) ? re
 const native = process.env.CAPACITOR === '1';
 
 export default defineConfig({
-  define: { __APP_VERSION__: JSON.stringify(pkg.version), __PERFIL__: perfil },
+  define: { __APP_VERSION__: JSON.stringify(pkg.version), __BUILD_TIME__: JSON.stringify(new Date().toISOString()), __PERFIL__: perfil },
   plugins: [
     react(),
-    !native && VitePWA({
+    VitePWA({
+      disable: native, // la app iOS no usa service worker
       registerType: 'autoUpdate',
-      injectRegister: 'auto',
+      injectRegister: false,
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Entreno',
@@ -35,7 +36,7 @@ export default defineConfig({
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: { globPatterns: ['**/*.{js,css,html,svg,png,woff2}'], navigateFallback: 'index.html' },
+      workbox: { globPatterns: ['**/*.{js,css,html,svg,png,woff2}'], navigateFallback: 'index.html', skipWaiting: true, clientsClaim: true, cleanupOutdatedCaches: true },
     }),
   ],
   base: './',
