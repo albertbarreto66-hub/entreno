@@ -83,4 +83,19 @@ describe('respaldo ZIP', () => {
     if (!r.ok) expect(r.errors.join(' ')).toMatch(/foto x|fecha inválida/);
     expect(await get('body', 'keep')).toBeTruthy();
   });
+  it('acepta un respaldo comprimido dentro de una carpeta y reconoce el ZIP del código', async () => {
+    await put('photos', { id: 'p2', kind: 'progreso', date: '2026-10-19', pose: 'perfil', blob: new Blob([new Uint8Array([1, 2, 3])], { type: 'image/jpeg' }), type: 'image/jpeg', width: 1, height: 1, at: 1 });
+    const orig = await JSZip.loadAsync(await exportBackup());
+    const nested = new JSZip();
+    for (const [name, f] of Object.entries(orig.files)) if (!f.dir) nested.file('perfil-albert/' + name, await f.async('uint8array'));
+    const r = await parseBackup(await nested.generateAsync({ type: 'blob' }));
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.preview.photoCount).toBe(1);
+    const code = new JSZip();
+    code.file('entreno/package.json', '{}');
+    const r2 = await parseBackup(await code.generateAsync({ type: 'blob' }));
+    expect(r2.ok).toBe(false);
+    if (!r2.ok) expect(r2.errors[0]).toMatch(/código de la app/);
+  });
 });
+

@@ -50,8 +50,14 @@ export async function parseBackup(file: Blob): Promise<ParsedBackup | BackupErro
   const errors: string[] = [];
   let zip: JSZip;
   try { zip = await JSZip.loadAsync(file); } catch { return { ok: false, errors: ['El archivo no es un ZIP válido.'] }; }
-  const dataFile = zip.file('data.json');
-  if (!dataFile) return { ok: false, errors: ['Falta data.json dentro del ZIP.'] };
+  // data.json puede estar en la raíz o dentro de una carpeta (si el ZIP se descomprimió y se volvió a comprimir).
+  const candidates = zip.file(/(^|\/)data\.json$/).filter((f) => !f.name.startsWith('__MACOSX/'));
+  const dataFile = zip.file('data.json') ?? candidates.sort((a, b) => a.name.length - b.name.length)[0] ?? null;
+  if (!dataFile) {
+    if (zip.file(/(^|\/)package\.json$/).length) return { ok: false, errors: ['Este es el ZIP con el código de la app, no un respaldo. Elegí "perfil-albert.zip" o un respaldo exportado desde Ajustes.'] };
+    return { ok: false, errors: ['Este archivo no es un respaldo de Entreno (no tiene data.json). Elegí "perfil-albert.zip" o un respaldo exportado desde Ajustes.'] };
+  }
+  const prefix = dataFile.name.slice(0, dataFile.name.length - 'data.json'.length);
   let data: { format?: string; version?: number; exportedAt?: string; stores?: Record<string, unknown> };
   try { data = JSON.parse(await dataFile.async('string')); } catch { return { ok: false, errors: ['data.json está dañado o no es JSON.'] }; }
   if (data.format !== BACKUP_FORMAT) errors.push('No es un respaldo de esta app.');
@@ -83,7 +89,7 @@ export async function parseBackup(file: Blob): Promise<ParsedBackup | BackupErro
   }
   // Fotos: cada registro debe tener su archivo
   for (const p of stores.photos ?? []) {
-    const f = typeof p.file === 'string' ? zip.file(p.file) : null;
+    const f = typeof p.file === 'string' ? zip.file(prefix + p.file) : null;
     if (!f) { errors.push(`Falta el archivo de la foto ${String(p.id)}.`); continue; }
     const type = typeof p.type === 'string' && p.type.startsWith('image/') ? p.type : 'image/jpeg';
     const buf = await f.async('arraybuffer');
