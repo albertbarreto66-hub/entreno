@@ -28,6 +28,10 @@ npm run test:e2e     # 7 pruebas de punta a punta en Chromium con pantalla de iP
 
 Si Playwright no encuentra Chromium, definí `CHROME_PATH` con la ruta a un Chrome/Chromium instalado.
 
+## Semana de entrenamiento
+
+Lunes Torso A · Martes Torso B · Miércoles Brazos, hombro posterior y core · Jueves Torso C · **Viernes Piernas** (única sesión de piernas, a pedido). Los ejercicios de piernas tienen una precaución por várices/varicocele: carga moderada, sin aguantar la respiración, frenar ante dolor, pesadez o hinchazón, y consultar al médico. Todo se puede editar en Ajustes → Plantillas.
+
 ## Respaldo y restauración
 
 **Ajustes → Respaldo → Exportar respaldo completo (.zip).**

@@ -21,6 +21,17 @@ describe('plantillas', () => {
   });
 });
 
+describe('distribución semanal', () => {
+  it('piernas solo los viernes; el resto de la semana es torso, brazos y core', () => {
+    const LEG = /prensa|sentadilla|femoral|hip thrust|abducci|gemelo|rumano|puente/i;
+    for (const t of DEFAULT_TEMPLATES) {
+      const legs = t.exercises.filter((e) => LEG.test(e.name));
+      if (t.weekday === 5) expect(legs.length).toBe(t.exercises.length);
+      else expect(legs.map((e) => e.name), t.name).toEqual([]);
+    }
+  });
+});
+
 describe('sesión', () => {
   it('no precarga pesos y respeta adaptación / reducción', () => {
     const s = newSession(lunes, '2026-10-19', { adaptation: true, reducedSets: false });

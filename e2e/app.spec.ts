@@ -23,7 +23,7 @@ test('1. registrar una serie y recuperarla al recargar', async ({ page }) => {
   await fresh(page);
   await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Entrenar' }).click();
   await page.getByRole('combobox', { name: 'Sesión' }).selectOption('lunes');
-  await page.getByRole('button', { name: 'Empezar sesión' }).click();
+  await page.getByRole('button', { name: 'Empezar sesión y cargar series' }).click();
   await page.getByLabel('Serie 1 kg').first().fill('42,5');
   await page.getByLabel('Serie 1 repeticiones', { exact: true }).first().fill('8');
   await page.getByLabel('Serie 1 repeticiones en reserva').first().selectOption('2');

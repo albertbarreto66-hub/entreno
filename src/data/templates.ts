@@ -9,6 +9,7 @@ function ex(e: Ex): ExerciseTemplate {
 }
 
 const KNEE = 'Solo si la rodilla está estable y sin dolor. Si no, omitilo y registrá el motivo; que tu entrenador decida la adaptación.';
+const VEINS = 'Con várices o varicocele: carga moderada, no aguantes la respiración al empujar y frená si aparece dolor, pesadez o hinchazón. Consultá con tu médico qué ejercicios te convienen.';
 const WRIST = 'Si molesta la muñeca, usá agarre neutro o el que te resulte cómodo, o bajá la carga.';
 
 export const DEFAULT_TEMPLATES: DayTemplate[] = [
@@ -35,29 +36,7 @@ export const DEFAULT_TEMPLATES: DayTemplate[] = [
     ],
   },
   {
-    id: 'martes', weekday: 2, name: 'Piernas A', exercises: [
-      ex({ id: 'mar-prensa', name: 'Prensa', alternative: 'A definir con tu entrenador', sets: 3, repMin: 8, repMax: 10, main: true,
-        how: 'Pies a la altura de hombros, rodillas en la línea de los pies. Bajá hasta donde mantengas la zona lumbar apoyada y sin dolor.',
-        errors: 'Rodillas que se van hacia adentro, despegar la cadera abajo, bloquear las rodillas arriba.', caution: KNEE }),
-      ex({ id: 'mar-hip-thrust', name: 'Hip thrust', alternative: 'Hip thrust en máquina', sets: 3, repMin: 8, repMax: 10, main: true,
-        how: 'Parte alta de la espalda en el banco, pies firmes. Empujá con la cadera hasta quedar alineado, mentón hacia el pecho, pausa arriba.',
-        errors: 'Arquear la zona lumbar en vez de extender la cadera, pies muy lejos o muy cerca.' }),
-      ex({ id: 'mar-femoral-sentado', name: 'Curl femoral sentado', alternative: 'Curl femoral acostado', sets: 3, repMin: 10, repMax: 12, main: false,
-        how: 'Ajustá el rodillo sobre los tobillos y la rodilla alineada con el eje de la máquina. Flexioná completo y volvé lento.',
-        errors: 'Eje de la máquina desalineado con la rodilla, levantar la cadera del asiento.', caution: 'Ajustá bien el eje a la rodilla; si molesta, omitilo y anotá el motivo.' }),
-      ex({ id: 'mar-abduccion', name: 'Abducción de cadera en máquina', alternative: 'Abducción con banda', sets: 2, repMin: 12, repMax: 15, main: false,
-        how: 'Espalda apoyada, abrí las piernas controlando y volvé sin dejar caer el peso.',
-        errors: 'Usar impulso, recorrido mínimo.' }),
-      ex({ id: 'mar-gemelos', name: 'Gemelos', alternative: 'Gemelos sentado en máquina', sets: 3, repMin: 12, repMax: 15, main: false,
-        how: 'Subí en puntas de pie lo más alto posible, pausa, y bajá hasta estirar.',
-        errors: 'Rebotar, recorrido corto, flexionar las rodillas para ayudarte.' }),
-      ex({ id: 'mar-dead-bug', name: 'Dead bug', alternative: 'Plancha en rodillas', sets: 2, repMin: 8, repMax: 10, perSide: true, main: false,
-        how: 'Boca arriba, zona lumbar suave contra el piso. Estirá brazo y pierna opuestos despacio, sin que la espalda se despegue. Respirá con calma.',
-        errors: 'Ir rápido, arquear la espalda, contener la respiración.' }),
-    ],
-  },
-  {
-    id: 'miercoles', weekday: 3, name: 'Torso B', exercises: [
+    id: 'martes', weekday: 2, name: 'Torso B', exercises: [
       ex({ id: 'mie-jalon-neutro', name: 'Jalón con agarre neutro', alternative: 'Jalón al pecho con agarre cómodo', sets: 3, repMin: 8, repMax: 12, main: true,
         how: 'Agarre neutro, pecho alto, bajá llevando los codos hacia las costillas.',
         errors: 'Balanceo con el torso, recorrido corto arriba.' }),
@@ -79,27 +58,32 @@ export const DEFAULT_TEMPLATES: DayTemplate[] = [
     ],
   },
   {
-    id: 'jueves', weekday: 4, name: 'Piernas B', exercises: [
-      ex({ id: 'jue-sentadilla-banco', name: 'Sentadilla a banco asistida', alternative: 'A definir con tu entrenador', sets: 3, repMin: 8, repMax: 10, main: true,
-        how: 'Sostenete de un apoyo, sentate controlando hasta tocar el banco y levantate empujando el piso. Rodillas en la línea de los pies.',
-        errors: 'Dejarte caer sobre el banco, rodillas hacia adentro.', caution: 'Condicionada a estabilidad, técnica e indicación del entrenador. ' + KNEE }),
-      ex({ id: 'jue-rumano', name: 'Peso muerto rumano con mancuernas', alternative: 'A definir con tu entrenador', sets: 3, repMin: 8, repMax: 10, main: true,
-        how: 'Rodillas apenas flexionadas, llevá la cadera hacia atrás con la espalda neutra y las mancuernas cerca de las piernas. Subí empujando la cadera adelante.',
-        errors: 'Redondear la espalda, bajar más de lo que tu movilidad permite, convertirlo en sentadilla.', caution: 'Solo con técnica supervisada y sin molestias.' }),
-      ex({ id: 'jue-femoral', name: 'Curl femoral', alternative: 'Curl femoral sentado', sets: 3, repMin: 10, repMax: 12, main: false,
-        how: 'Alineá la rodilla con el eje, flexioná completo y volvé lento.', errors: 'Levantar la cadera, usar impulso.',
-        caution: 'Ajustá bien el eje a la rodilla; si molesta, omitilo y anotá el motivo.' }),
-      ex({ id: 'jue-puente', name: 'Puente de glúteos', alternative: 'Hip thrust en máquina', sets: 2, repMin: 10, repMax: 12, main: false,
-        how: 'Boca arriba, pies firmes, elevá la cadera apretando glúteos y bajá controlando.', errors: 'Arquear la zona lumbar, empujar con las puntas.' }),
-      ex({ id: 'jue-gemelos', name: 'Gemelos', alternative: 'Gemelos sentado en máquina', sets: 3, repMin: 12, repMax: 15, main: false,
-        how: 'Subí lo más alto posible, pausa, bajá hasta estirar.', errors: 'Rebotar, recorrido corto.' }),
-      ex({ id: 'jue-pallof', name: 'Pallof press', alternative: 'Pallof press en rodillas', sets: 2, repMin: 10, repMax: 10, perSide: true, main: false,
-        how: 'De costado a la polea, llevá el agarre al frente del pecho y estirá los brazos resistiendo que te gire. Respirá normal.',
-        errors: 'Girar el torso, contener la respiración, estar demasiado cerca de la polea.' }),
+    id: 'miercoles', weekday: 3, name: 'Brazos, hombro posterior y core', exercises: [
+      ex({ id: 'mie2-laterales-polea', name: 'Elevaciones laterales en polea o máquina', alternative: 'Elevaciones laterales con mancuernas', sets: 3, repMin: 12, repMax: 15, main: false,
+        how: 'Brazo hacia el costado hasta la altura del hombro, codo apenas flexionado, bajada lenta.',
+        errors: 'Balancear el cuerpo, encoger los hombros, subir por encima del hombro.' }),
+      ex({ id: 'mie2-posterior', name: 'Hombro posterior en máquina', alternative: 'Face pull en polea', sets: 3, repMin: 12, repMax: 15, main: false,
+        how: 'Pecho apoyado, abrí los brazos hacia atrás con codos semiflexionados, pausa breve.',
+        errors: 'Encoger los hombros, usar impulso.' }),
+      ex({ id: 'mie2-curl-martillo', name: 'Curl martillo', alternative: 'Curl de bíceps en polea', sets: 3, repMin: 10, repMax: 12, main: false,
+        how: 'Agarre neutro, codos quietos al costado, subí y bajá controlando.',
+        errors: 'Balancear el cuerpo, adelantar los codos.', caution: WRIST }),
+      ex({ id: 'mie2-triceps-cuerda', name: 'Tríceps en polea con cuerda', alternative: 'Tríceps en polea con barra', sets: 3, repMin: 10, repMax: 15, main: false,
+        how: 'Codos pegados al cuerpo, extendé y separá un poco la cuerda abajo, volvé controlando.',
+        errors: 'Mover los codos, inclinarte encima de la polea.', caution: WRIST }),
+      ex({ id: 'mie2-curl-polea', name: 'Curl de bíceps en polea', alternative: 'Curl con barra Z', sets: 2, repMin: 12, repMax: 15, main: false,
+        how: 'De pie frente a la polea baja, codos quietos, subí y bajá lento.',
+        errors: 'Tirar con la espalda, recorrido corto.', caution: WRIST }),
+      ex({ id: 'mie2-pallof', name: 'Pallof press', alternative: 'Pallof press en rodillas', sets: 2, repMin: 10, repMax: 10, perSide: true, main: false,
+        how: 'De costado a la polea, llevá el agarre al frente del pecho y estirá los brazos resistiendo el giro. Respirá normal.',
+        errors: 'Girar el torso, contener la respiración.' }),
+      ex({ id: 'mie2-dead-bug', name: 'Dead bug', alternative: 'Plancha en rodillas', sets: 2, repMin: 8, repMax: 10, perSide: true, main: false,
+        how: 'Boca arriba, zona lumbar suave contra el piso. Estirá brazo y pierna opuestos despacio, sin despegar la espalda.',
+        errors: 'Ir rápido, arquear la espalda, contener la respiración.' }),
     ],
   },
   {
-    id: 'viernes', weekday: 5, name: 'Torso C', exercises: [
+    id: 'jueves', weekday: 4, name: 'Torso C', exercises: [
       ex({ id: 'vie-press-pecho', name: 'Press de pecho en máquina', alternative: 'Press con mancuernas en banco plano', sets: 3, repMin: 8, repMax: 12, main: true,
         how: 'Escápulas apoyadas, empujá controlando y bajá lento.', errors: 'Rebotar, despegar los hombros.', caution: WRIST }),
       ex({ id: 'vie-remo-apoyado', name: 'Remo con pecho apoyado', alternative: 'Remo en máquina', sets: 3, repMin: 8, repMax: 12, main: true,
@@ -112,6 +96,25 @@ export const DEFAULT_TEMPLATES: DayTemplate[] = [
         how: 'Codos quietos, subí y bajá controlando.', errors: 'Balancear el cuerpo.', caution: WRIST }),
       ex({ id: 'vie-triceps', name: 'Tríceps en polea', alternative: 'Tríceps en polea con cuerda', sets: 2, repMin: 10, repMax: 12, main: false,
         how: 'Codos pegados al cuerpo, extendé completo y volvé controlando.', errors: 'Mover los codos.', caution: WRIST }),
+    ],
+  },
+  {
+    id: 'viernes', weekday: 5, name: 'Piernas', exercises: [
+      ex({ id: 'mar-prensa', name: 'Prensa', alternative: 'A definir con tu entrenador', sets: 3, repMin: 10, repMax: 12, main: true,
+        how: 'Pies a la altura de hombros, rodillas en la línea de los pies. Bajá hasta donde mantengas la zona lumbar apoyada y sin dolor. Exhalá al empujar.',
+        errors: 'Rodillas hacia adentro, despegar la cadera abajo, bloquear las rodillas, aguantar la respiración.', caution: KNEE + ' ' + VEINS }),
+      ex({ id: 'mar-femoral-sentado', name: 'Curl femoral sentado', alternative: 'Curl femoral acostado', sets: 3, repMin: 10, repMax: 12, main: false,
+        how: 'Rodillo sobre los tobillos y rodilla alineada con el eje de la máquina. Flexioná completo y volvé lento.',
+        errors: 'Eje desalineado con la rodilla, levantar la cadera del asiento.', caution: 'Ajustá bien el eje a la rodilla; si molesta, omitilo y anotá el motivo.' }),
+      ex({ id: 'mar-hip-thrust', name: 'Hip thrust en máquina', alternative: 'Puente de glúteos en el piso', sets: 3, repMin: 10, repMax: 12, main: true,
+        how: 'Espalda alta apoyada, pies firmes. Empujá con la cadera hasta quedar alineado, pausa arriba, exhalá al subir.',
+        errors: 'Arquear la zona lumbar, aguantar la respiración.', caution: VEINS }),
+      ex({ id: 'mar-abduccion', name: 'Abducción de cadera en máquina', alternative: 'Abducción con banda', sets: 2, repMin: 12, repMax: 15, main: false,
+        how: 'Espalda apoyada, abrí las piernas controlando y volvé sin dejar caer el peso.',
+        errors: 'Usar impulso, recorrido mínimo.' }),
+      ex({ id: 'vie2-gemelos-sentado', name: 'Gemelos sentado en máquina', alternative: 'Gemelos de pie en máquina', sets: 3, repMin: 12, repMax: 15, main: false,
+        how: 'Subí en puntas de pie lo más alto posible, pausa, y bajá hasta estirar.',
+        errors: 'Rebotar, recorrido corto.' }),
     ],
   },
 ];

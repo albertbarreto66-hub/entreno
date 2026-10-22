@@ -399,13 +399,13 @@ ul.list:not(.plain) > li:last-child { border-bottom: 0; }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 
 /* ---------- Toast ---------- */
-.toast-wrap { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top) + 72px); display: flex; justify-content: center; pointer-events: none; z-index: 200; }
+.toast-wrap { position: fixed; left: 0; right: 0; bottom: calc(var(--tab-h) + env(safe-area-inset-bottom) + 112px); display: flex; justify-content: center; pointer-events: none; z-index: 200; }
 .toast {
   display: inline-flex; align-items: center; gap: 8px; background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 99px;
   font-weight: 700; font-size: .9rem; box-shadow: 0 10px 30px -8px rgba(0, 0, 0, .35); animation: toast-in .4s var(--spring); max-width: 92vw; text-align: center;
 }
 .toast.error { background: var(--red); color: #fff; border-radius: 16px; }
-@keyframes toast-in { from { transform: translateY(-14px) scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes toast-in { from { transform: translateY(14px) scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* ---------- Entrenamiento ---------- */
 .exercise { position: relative; }
@@ -434,7 +434,8 @@ ul.list:not(.plain) > li:last-child { border-bottom: 0; }
 .exlist { margin: 0; padding: 0; list-style: none; counter-reset: ex; }
 .exlist li { display: grid; grid-template-columns: 30px 1fr; gap: 0 10px; padding: 9px 0; border-bottom: 1px solid var(--line); counter-increment: ex; }
 .exlist li:last-child { border-bottom: 0; }
-.exlist li::before { content: counter(ex); grid-row: span 2; width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; font-size: .85rem; background: var(--s-train); color: var(--c-train); }
+.exlist li > div { min-width: 0; }
+.exlist li::before { content: counter(ex); width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; font-size: .85rem; background: var(--s-train); color: var(--c-train); }
 
 .resttimer {
   position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tab-h) + env(safe-area-inset-bottom) + 20px); z-index: 40;

@@ -105,16 +105,20 @@ function StartPanel({ templates, settings, programStart, sessions, date, onOpen,
       </section>
 
       <section className="card">
-        <h2 className="h2">Ejercicios</h2>
+        <h2 className="h2">Ejercicios de {tpl.name}</h2>
         <ol className="exlist">
           {tpl.exercises.map((e) => (
             <li key={e.id}>
-              <b>{e.name}</b> <span className="muted">{e.sets}×{e.repMin === e.repMax ? e.repMin : `${e.repMin}–${e.repMax}`}{e.perSide ? ' por lado' : ''}</span>
-              {e.caution && <div className="small warn-text">⚠ {e.caution}</div>}
+              <div>
+                <b>{e.name}</b> <span className="muted">{e.sets}×{e.repMin === e.repMax ? e.repMin : `${e.repMin}–${e.repMax}`}{e.perSide ? ' por lado' : ''}</span>
+                {e.caution && <div className="small warn-text">⚠ {e.caution}</div>}
+              </div>
             </li>
           ))}
         </ol>
         {lastSame && <p className="small muted">Última vez: {formatShort(lastSame.date)} ({STATUS_LABEL[lastSame.status].toLowerCase()}).</p>}
+        <p className="note small">Esta lista es una vista previa. Para cargar <b>kilos, repeticiones y series</b> de cada ejercicio, tocá <b>Empezar sesión</b>.</p>
+        <button className="btn primary block lg" onClick={start}>Empezar sesión y cargar series</button>
       </section>
 
       {sessions.length > 0 && (
