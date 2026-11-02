@@ -130,9 +130,6 @@ function PrefsSection() {
       <h2 className="h2">Preferencias</h2>
       <label className="switch"><input type="checkbox" checked={s.dairyEnabled} onChange={(e) => patchSettings({ dairyEnabled: e.target.checked })} /><span>Mostrar opciones con queso o yogur (desactivado al inicio)</span></label>
       <label className="switch"><input type="checkbox" checked={s.preferNoEgg} onChange={(e) => patchSettings({ preferNoEgg: e.target.checked })} /><span>Usar siempre la alternativa sin huevo</span></label>
-      <Field label="Semanas con modo adaptación sugerido">
-        <Segmented label="Semanas de adaptación" value={s.adaptationWeeks} onChange={(v) => patchSettings({ adaptationWeeks: v })} options={[0, 1, 2, 3].map((v) => ({ value: v, label: String(v) }))} />
-      </Field>
       <label className="switch"><input type="checkbox" checked={s.repeatWeek} onChange={(e) => patchSettings({ repeatWeek: e.target.checked })} /><span>Repetir semana (no sugerir subidas de carga)</span></label>
     </section>
   );

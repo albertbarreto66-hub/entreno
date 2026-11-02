@@ -322,7 +322,7 @@ function ExerciseCard({ e, index, t, hist, state, expanded, onToggle, onChange, 
       )}
       {t?.caution && <p className="small warn-text">⚠ {t.caution}</p>}
       <div className="lasttime">
-        {last ? <><b>La última vez</b> ({formatShort(last.session.date)}): {describeSets(last.ex)}{last.ex.pain > 0 ? ` · molestia ${last.ex.pain}/10` : ''}</> : <span className="muted">Primera vez con este ejercicio.</span>}
+        {last ? <><b>La última vez</b> ({formatShort(last.session.date)}): {describeSets(last.ex)}{last.ex.pain > 0 ? ` · molestia ${last.ex.pain}/10` : ''}</> : <span className="muted">Todavía sin registros de este ejercicio en la app.</span>}
       </div>
 
       <div className="sets">

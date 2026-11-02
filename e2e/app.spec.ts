@@ -215,7 +215,7 @@ test('programa: aplicar, sesión guiada con "Hecha" que completa lo indicado y c
   await page.getByRole('button', { name: 'Ver y aplicar' }).click();
   await page.getByRole('button', { name: 'Aplicar programa' }).first().click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Aplicar programa' }).click();
-  await expect(page.getByText(/Semana 1 · Adaptación|Empieza el/).first()).toBeVisible();
+  await expect(page.getByText(/Semana 1 · Recalibración|Empieza el/).first()).toBeVisible();
   await expect(page.getByText('Calorías y macros')).toBeVisible();
 
   // Entrenamiento guiado

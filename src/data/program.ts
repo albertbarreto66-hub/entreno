@@ -1,5 +1,6 @@
 /**
  * Plan de 24 semanas en 6 bloques de 4 semanas.
+ * Pensado para alguien con años de entrenamiento: volumen completo desde la semana 1, RIR 1–2.
  * Las semanas de descarga bajan volumen y carga para recuperar; no son "semanas perdidas".
  * Los números de pasos son metas máximas de referencia: la app solo sugiere subir si hubo
  * cumplimiento, sin dolor y con buena recuperación.
@@ -21,36 +22,36 @@ export interface Block {
 }
 
 export const BLOCKS: Block[] = [
-  { n: 1, name: 'Adaptación y técnica', weeks: [1, 4], goal: 'Volumen completo desde el día 1, calibrar cargas y afianzar la técnica dejando 3 repeticiones en reserva.',
-    setsDelta: 0, priorityExtra: 0, rir: 3,
+  { n: 1, name: 'Recalibración', weeks: [1, 4], goal: 'Volver a tus cargas de trabajo: calibrar pesos en cada ejercicio con técnica sólida, cerca del fallo pero sin llegar.',
+    setsDelta: 0, priorityExtra: 0, rir: 2,
     steps: 'Arrancá en tu promedio actual (≈ 10.000–11.000). Subí 500 por semana solo si cumpliste 5 de 7 días sin dolor.',
     nutrition: 'Déficit moderado con el menú (≈ 2.450 kcal, ≈ 185 g de proteína). Prioridad: cumplir las 4 comidas y pesar porciones.',
     recovery: 'Acostarte 30 minutos antes cada semana hasta llegar a las 00:00. Dormir al menos 7 h.',
     indicators: 'Técnica estable, sin dolor articular, cargas registradas en todos los ejercicios.',
     modify: 'Si terminás muy fatigado o con dolor, mantené las series del bloque y no subas cargas esa semana.' },
-  { n: 2, name: 'Acumulación', weeks: [5, 8], goal: 'Subir cargas o repeticiones semana a semana con el volumen base.',
-    setsDelta: 0, priorityExtra: 0, rir: 2,
+  { n: 2, name: 'Acumulación', weeks: [5, 8], goal: 'Subir cargas o repeticiones cada semana con una serie extra en hombros, pecho superior, espalda y brazos.',
+    setsDelta: 0, priorityExtra: 1, rir: 2,
     steps: 'Seguí con +500 por semana si se cumple la revisión semanal, hasta 13.000–14.000.',
     nutrition: 'Mismo plan. Ajustes según el control semanal (ver criterios).',
     recovery: 'Objetivo: 7–8 h. Si dormís menos de 6 h, ese día no subas cargas.',
     indicators: 'Cargas o repeticiones en subida en la mayoría de los ejercicios; cintura bajando.',
     modify: 'Si el rendimiento cae 2 sesiones seguidas en varios ejercicios, repetí la semana.' },
-  { n: 3, name: 'Hipertrofia +', weeks: [9, 12], goal: 'Más volumen en hombros, pecho superior, espalda y brazos.',
-    setsDelta: 0, priorityExtra: 1, rir: 2, deloadWeek: 12,
+  { n: 3, name: 'Hipertrofia intensiva', weeks: [9, 12], goal: 'Más esfuerzo: series a 1 repetición del fallo en los grupos prioritarios.',
+    setsDelta: 0, priorityExtra: 1, rir: 1, deloadWeek: 12,
     steps: 'Hasta 15.000 si se cumple la revisión. Semana 12: mantené los pasos sin subir.',
     nutrition: 'Semana 12: comé en mantenimiento estimado (+300–400 kcal, sobre todo carbohidratos en almuerzo y merienda) para recuperar.',
     recovery: 'Semana 12 de descarga: mitad de series y cargas un 10 % más bajas.',
     indicators: 'Fuerza estable o en subida con el volumen extra; hambre controlable.',
     modify: 'Si la recuperación es mala dos semanas seguidas, quitá la serie extra antes de la descarga.' },
-  { n: 4, name: 'Fuerza-hipertrofia', weeks: [13, 16], goal: 'Consolidar fuerza en los ejercicios principales con el volumen base.',
+  { n: 4, name: 'Fuerza', weeks: [13, 16], goal: 'Consolidar fuerza en los ejercicios principales con volumen base y 2 en reserva.',
     setsDelta: 0, priorityExtra: 0, rir: 2,
     steps: 'Mantener 15.000 si te recuperás bien; no subir más.',
     nutrition: 'Volvé al déficit del plan. Ajustes según el control semanal.',
     recovery: '7–8 h de sueño. Un día de recuperación extra si aparece fatiga acumulada.',
     indicators: 'Récords de carga en los ejercicios principales; cintura y peso promedio bajando.',
     modify: 'Si no hay cambios en cintura ni peso durante 2–3 semanas con buena adherencia, aplicá el criterio de ajuste.' },
-  { n: 5, name: 'Volumen máximo tolerable', weeks: [17, 20], goal: 'Último empuje de volumen en grupos prioritarios.',
-    setsDelta: 0, priorityExtra: 1, rir: 2,
+  { n: 5, name: 'Volumen máximo', weeks: [17, 20], goal: 'Último empuje de volumen e intensidad en grupos prioritarios.',
+    setsDelta: 0, priorityExtra: 1, rir: 1,
     steps: 'Mantener 15.000 (tope de la plantilla 20.000; no hace falta llegar).',
     nutrition: 'Mismo plan. No bajes más calorías si el rendimiento cae: primero revisá sueño y adherencia.',
     recovery: 'Vigilá señales de fatiga (ver Recuperación).',

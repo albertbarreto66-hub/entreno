@@ -45,16 +45,17 @@ describe('plantillas y programa', () => {
     expect(isDeloadWeek(24)).toBe(true);
     expect(isDeloadWeek(11)).toBe(false);
   });
-  it('series según bloque: completas desde la semana 1, +1 en prioritarios en bloque 3, mitad en descarga', () => {
+  it('series según bloque: completas desde la semana 1, +1 en prioritarios en bloques 2, 3 y 5, mitad en descarga', () => {
     expect(plannedSetsFor(press, 1)).toBe(3);
     expect(plannedSetsFor(press, 3)).toBe(3);
-    expect(plannedSetsFor(press, 6)).toBe(3);
-    expect(plannedSetsFor(press, 10)).toBe(4); // prioritario +1
+    expect(plannedSetsFor(press, 6)).toBe(4); // bloque 2: prioritario +1
+    expect(plannedSetsFor(press, 10)).toBe(4);
+    expect(plannedSetsFor(press, 14)).toBe(3); // bloque 4: base
     expect(plannedSetsFor(press, 12)).toBe(2); // descarga
     expect(plannedSetsFor(press, 6, { adaptation: true })).toBe(2);
     const noPrio = lunes.exercises.find((e) => !e.priority)!;
     expect(plannedSetsFor(noPrio, 10)).toBe(noPrio.sets);
-    expect(plannedSetsFor(press, 6, { reduced: true })).toBe(2);
+    expect(plannedSetsFor(press, 6, { reduced: true })).toBe(3);
   });
 });
 
@@ -88,8 +89,9 @@ describe('prescripción (doble progresión)', () => {
   it('semana de descarga: −10 % y RIR 4', () => {
     expect(prescribe(press, [ex([[50, 8, 2, true]])], { week: 12, sets: 2 })).toMatchObject({ kind: 'descarga', kg: 45, rir: 4 });
   });
-  it('semana 1: RIR 3', () => {
-    expect(prescribe(press, [], { week: 1, sets: 2 }).rir).toBe(3);
+  it('experiencia avanzada: RIR 2 desde la semana 1 y RIR 1 en los bloques intensivos', () => {
+    expect(prescribe(press, [], { week: 1, sets: 3 }).rir).toBe(2);
+    expect(prescribe(press, [], { week: 10, sets: 4 }).rir).toBe(1);
   });
 });
 

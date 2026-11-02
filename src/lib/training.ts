@@ -97,12 +97,12 @@ const topKg = (e: ExerciseLog) => Math.max(...doneSets(e).map((s) => s.kg ?? 0))
 export function prescribe(t: ExerciseTemplate, history: ExerciseLog[], ctx: { week: number; sets: number; day?: DayContext }): Prescription {
   const block = blockForWeek(ctx.week);
   const deload = isDeloadWeek(ctx.week);
-  const rir = deload ? 4 : ctx.week <= 1 ? 3 : block.rir;
+  const rir = deload ? 4 : block.rir;
   const base = { sets: ctx.sets, repMin: t.repMin, repMax: t.repMax, rir, restSec: t.restSec[0] };
   const last = history.find((h) => !h.skipped && doneSets(h).some((s) => s.kg != null));
   if (!last) {
     return { ...base, reps: t.repMax, kg: null, kind: 'calibracion',
-      note: `Primera vez: elegí un peso con el que llegues a ${t.repMax} repeticiones dejando ${rir} en reserva. Anotalo: desde la próxima sesión la app te indica el peso.` };
+      note: `Primer registro en la app: usá tu peso de trabajo para ${t.repMax} repeticiones dejando ${rir} en reserva (si dudás, empezá un poco más liviano). Desde la próxima sesión la app te indica el peso exacto.` };
   }
   const kg = topKg(last);
   const ds = doneSets(last).filter((s) => s.kg === kg);
