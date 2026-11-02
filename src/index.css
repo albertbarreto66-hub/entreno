@@ -476,6 +476,8 @@ ul.list:not(.plain) > li:last-child { border-bottom: 0; }
 .macro small { font-family: var(--f-body); font-weight: 600; font-size: .72rem; opacity: .8; }
 .macro.kcal { background: var(--s-meal); color: var(--c-meal); }
 .macro.prot { background: var(--s-steps); color: var(--c-steps); }
+.macro.carb { background: var(--s-water); color: var(--c-water); }
+.macro.fat { background: var(--s-weight); color: var(--c-weight); }
 
 /* Opciones de comida */
 .option { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 13px; }
@@ -551,3 +553,36 @@ details > summary { cursor: pointer; font-weight: 700; }
   .chart .draw { stroke-dashoffset: 0; }
 }
 .date-main::first-letter { text-transform: uppercase; }
+
+/* ---------- Entrenamiento guiado ---------- */
+.rxlist { list-style: none; padding: 0; margin: 0; }
+.rxlist li { display: flex; gap: 12px; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.rxlist li:last-child { border-bottom: 0; }
+.rx-line { font-weight: 700; font-size: .9rem; margin-top: 3px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.rx-kind { display: inline-block; font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 99px; background: var(--surface-3); color: var(--muted); margin-left: 4px; vertical-align: middle; }
+.k-subir .rx-kind, .rx-kind.k-subir { background: var(--s-train); color: var(--c-train); }
+.k-calibracion .rx-kind, .rx-kind.k-calibracion { background: var(--s-water); color: var(--c-water); }
+.k-bajar .rx-kind, .rx-kind.k-bajar, .k-descarga .rx-kind, .rx-kind.k-descarga { background: var(--amber-soft); color: var(--amber); }
+.k-mas-reps .rx-kind, .rx-kind.k-mas-reps { background: var(--s-steps); color: var(--c-steps); }
+.yt { flex: none; font-size: .78rem; font-weight: 800; color: #fff; background: #d42020; padding: 4px 10px; border-radius: 99px; text-decoration: none; }
+.yt-btn { margin-top: 10px; }
+.rx-box { margin: 10px 0; padding: 12px 13px; border-radius: 14px; background: var(--s-train); border: 1px solid color-mix(in srgb, var(--c-train) 25%, transparent); }
+.rx-box > * + * { margin-top: 5px; }
+.rx-box.k-calibracion { background: var(--s-water); border-color: color-mix(in srgb, var(--c-water) 25%, transparent); }
+.rx-box.k-bajar, .rx-box.k-descarga { background: var(--amber-soft); border-color: color-mix(in srgb, var(--amber) 25%, transparent); }
+.rx-box.k-mas-reps { background: var(--s-steps); border-color: color-mix(in srgb, var(--c-steps) 25%, transparent); }
+.session-progress { background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .15); border-radius: 14px; padding: 10px 12px; }
+.session-progress .bar { height: 8px; border-radius: 4px; background: rgba(255, 255, 255, .18); margin-top: 7px; overflow: hidden; }
+.session-progress .bar i { display: block; height: 100%; background: #6ff0aa; border-radius: 4px; transition: width .5s var(--ease); }
+.exercise.collapsed { padding: 13px 16px; cursor: pointer; }
+.exercise.collapsed .ex-head { cursor: pointer; }
+.exercise.s-current { border: 2px solid color-mix(in srgb, var(--brand) 60%, transparent); box-shadow: 0 0 0 4px var(--brand-soft), var(--shadow); }
+.exercise.s-done.collapsed { background: var(--surface-2); }
+.exercise.s-done .ex-num { background: var(--c-train); color: var(--surface); }
+.exercise.s-next.collapsed { opacity: .85; }
+.setrow.is-next .setdone { box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 35%, transparent); }
+.share-cook { background: linear-gradient(140deg, var(--s-meal), var(--surface)); }
+
+.chip-btn { border: 0; cursor: pointer; font: inherit; font-size: .74rem; font-weight: 800; padding: 5px 11px; border-radius: 99px; background: rgba(255, 255, 255, .16); color: #fff; }
+.program-cta { background: linear-gradient(140deg, var(--s-steps), var(--s-train)); border: 0; }
+.btn.block, .btn.grow { white-space: normal; text-align: center; line-height: 1.25; padding-top: 8px; padding-bottom: 8px; }

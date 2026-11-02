@@ -12,7 +12,7 @@ beforeEach(async () => { await wipeAll(); });
 
 describe('persistencia en IndexedDB', () => {
   it('una serie registrada se recupera tras cerrar y reabrir la base (recarga)', async () => {
-    const s = newSession(DEFAULT_TEMPLATES[0], '2026-10-19', { adaptation: true, reducedSets: false });
+    const s = newSession(DEFAULT_TEMPLATES[0], '2026-10-19', { week: 1 });
     s.exercises[0].sets[0] = { kg: 42.5, reps: 8, rir: 2, done: true };
     await put('sessions', s);
     await resetDBConnection();

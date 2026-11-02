@@ -9,11 +9,16 @@ import type { Profile } from '../src/lib/types';
 const PERSONAL_PROFILE: Profile = JSON.parse(readFileSync(new URL('../private/perfil.json', import.meta.url), 'utf8'));
 import { ensureInitialized } from '../src/lib/app';
 import { exportBackup } from '../src/lib/backup';
-import { del, kvSet } from '../src/lib/db';
+import { del, kvSet, put } from '../src/lib/db';
 
 await ensureInitialized();
 await kvSet('profile', PERSONAL_PROFILE, true);
 await del('kv', 'programStart'); // la semana 1 empieza el día que la uses
+// Medidas iniciales opcionales (private/medidas.json, fuera del repositorio)
+try {
+  const medidas = JSON.parse(readFileSync(new URL('../private/medidas.json', import.meta.url), 'utf8'));
+  for (const m of medidas) await put('body', m, true);
+} catch { /* sin medidas */ }
 const blob = await exportBackup();
 const out = process.argv[2] ?? 'perfil-albert.zip';
 writeFileSync(out, Buffer.from(await blob.arrayBuffer()));

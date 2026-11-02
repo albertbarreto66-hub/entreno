@@ -17,6 +17,7 @@ export interface Profile {
   avoid: string;
   supplementsNote: string;
   history: string; // antecedentes, texto libre (no son diagnósticos)
+  sex?: 'masculino' | 'femenino' | null;
 }
 
 export interface ScheduleItem { id: string; time: string; label: string; remind: boolean }
@@ -48,6 +49,7 @@ export interface DayLog {
   recoveryFeel?: 'buena' | 'normal' | 'mala';
   fluidNote?: string; // frecuencia urinaria / molestias (opcional)
   manualTrainingDone?: boolean;
+  checkin?: { energy: number; hunger: number; recovery: number; note?: string } | null; // control semanal (1–5)
   updatedAt?: number;
 }
 
@@ -90,6 +92,20 @@ export interface ExerciseLog {
   techniqueOk?: boolean | null;
   skipped?: { reason: string; note?: string } | null;
   notes?: string;
+  target?: Prescription | null; // lo indicado por el programa para esta sesión
+}
+
+/** Indicación de la app para un ejercicio en una sesión (se calcula con tu historial). */
+export interface Prescription {
+  sets: number;
+  reps: number; // repeticiones objetivo por serie
+  repMin: number;
+  repMax: number;
+  rir: number; // repeticiones en reserva objetivo
+  kg: number | null; // null = sesión de calibración (primera vez)
+  restSec: number;
+  kind: 'calibracion' | 'subir' | 'repetir' | 'mas-reps' | 'bajar' | 'descarga';
+  note: string;
 }
 export type SessionStatus = 'en-curso' | 'completada' | 'incompleta' | 'omitida';
 export interface WorkoutSession {
@@ -104,12 +120,15 @@ export interface WorkoutSession {
   exercises: ExerciseLog[];
   omitReason?: string;
   noDetail?: boolean; // marcado como hecho sin registrar series
+  week?: number; // semana del programa
+  blockName?: string;
+  deload?: boolean;
   startedAt: number;
   finishedAt?: number;
   updatedAt: number;
 }
 
-export interface BodyLog { id: string; date: string; weightKg?: number | null; waistCm?: number | null; note?: string; at: number }
+export interface BodyLog { id: string; date: string; weightKg?: number | null; waistCm?: number | null; chestCm?: number | null; bicepsCm?: number | null; note?: string; at: number }
 
 export type PhotoPose = 'frente' | 'perfil' | 'espalda';
 export interface PhotoRec {
@@ -141,6 +160,9 @@ export interface ExerciseTemplate {
   errors: string;
   caution?: string;
   incrementKg: number;
+  muscle: string; // grupo muscular principal
+  video: string; // búsqueda de YouTube para ver la técnica (no es un video elegido a mano)
+  priority?: boolean; // ejercicios prioritarios: reciben series extra en los bloques de más volumen
 }
 export interface DayTemplate { id: string; weekday: number; name: string; exercises: ExerciseTemplate[] }
 

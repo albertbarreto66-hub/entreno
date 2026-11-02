@@ -2,8 +2,9 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useNav } from '../App';
 import { SleepSheet, sourceChip, StepsSheet, WaterSheet, WeightSheet } from '../components/QuickSheets';
 import { IconBed, IconComidas, IconDrop, IconEntrenar, IconFlame, IconHeart, IconLeaf, IconScale, IconSteps, IconSun, IconBowl, IconCup, IconMoon } from '../components/icons';
-import { Check, Chip, CountUp, Field, IconBadge, Segmented, Sheet, useConfirm } from '../components/ui';
+import { Check, CountUp, Field, IconBadge, Segmented, Sheet, useConfirm } from '../components/ui';
 import { programWeek } from '../lib/training';
+import { programApplied } from '../lib/programApply';
 import { STEP_GOAL_MAX } from '../data/profile';
 import { patchSettings, getProfile, getSchedule } from '../lib/app';
 import { formatLong, timeHM, weekday } from '../lib/dates';
@@ -33,6 +34,8 @@ export function Today() {
   const schedule = useLive(getSchedule, []);
   const programStart = useLive(() => kvGet<string>('programStart'), []);
   const profile = useLive(getProfile, []);
+  const appliedRec = useLive(async () => (await programApplied()) ?? null, []);
+  const applied = appliedRec === undefined ? undefined : appliedRec;
   const [sheet, setSheet] = useState<SheetName>(null);
   const confirm = useConfirm();
   const [notes, setNotes] = useState('');
@@ -77,12 +80,20 @@ export function Today() {
   return (
     <div className="stack-lg">
       {!s.settings.onboarded && <Welcome />}
+      {applied === null && (
+        <section className="card program-cta">
+          <div className="row between gap">
+            <div><b>Tu programa de 24 semanas está listo</b><p className="small muted">Rutina con kilos indicados, menú, pasos y control semanal.</p></div>
+            <button className="btn primary small" onClick={() => go('progreso', 'programa')}>Ver y aplicar</button>
+          </div>
+        </section>
+      )}
 
       {/* Rutina del día */}
       <section className="card hero">
         <div className="row between">
           <p className="eyebrow">{greeting(isToday)}{profile?.name ? `, ${profile.name}` : ''}</p>
-          {programStart && <Chip tone="green">Semana {programWeek(programStart, date)}</Chip>}
+          {applied && programStart && <button className="chip-btn" onClick={() => go('progreso', 'programa')}>Semana {Math.min(programWeek(programStart, date), 24)} de 24 ›</button>}
         </div>
         <h1 className="h1">
           {s.day.recovery ? 'Día de recuperación' : s.template ? s.template.name : wd === 0 || wd === 6 ? 'Fin de semana' : 'Sin rutina'}

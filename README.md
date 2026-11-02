@@ -22,15 +22,26 @@ Nota: los service workers (modo sin conexión) solo funcionan en `localhost` o c
 ## Pruebas
 
 ```bash
-npm test             # 38 pruebas unitarias: fechas, metas, pasos, progresión, nutrición, tendencias, persistencia, respaldo, importación de Salud
-npm run test:e2e     # 7 pruebas de punta a punta en Chromium con pantalla de iPhone
+npm test             # 65 pruebas unitarias: fechas, metas, pasos, progresión, nutrición, tendencias, persistencia, respaldo, importación de Salud
+npm run test:e2e     # 8 pruebas de punta a punta en Chromium con pantalla de iPhone
 ```
 
 Si Playwright no encuentra Chromium, definí `CHROME_PATH` con la ruta a un Chrome/Chromium instalado.
 
-## Semana de entrenamiento
+## Programa de 24 semanas
 
-Lunes Torso A · Martes Torso B · Miércoles Brazos, hombro posterior y core · Jueves Torso C · **Viernes Piernas** (única sesión de piernas, a pedido). Los ejercicios de piernas tienen una precaución por várices/varicocele: carga moderada, sin aguantar la respiración, frenar ante dolor, pesadez o hinchazón, y consultar al médico. Todo se puede editar en Ajustes → Plantillas.
+**Progreso → Programa → "Aplicar programa"**: fija la semana 1 (el lunes), las metas (calorías y proteína del menú, pasos según tu promedio) y el horario propuesto. Las metas rigen desde ese día, el historial no se toca y no se borran registros.
+
+- **Entrenamiento**: híbrido torso / pierna de 5 días, de hasta 60 minutos. Lunes Torso A (pecho superior y hombros), martes Pierna A, miércoles Torso B (espalda y bíceps), jueves Pierna B y core, viernes Torso C (hombros, pecho superior y brazos).
+- **6 bloques de 4 semanas** (`src/data/program.ts`): adaptación, acumulación, hipertrofia+, fuerza-hipertrofia, volumen máximo y consolidación. Las semanas 12 y 24 son de descarga.
+- **Kilos y repeticiones indicados** (`prescribe` en `src/lib/training.ts`, doble progresión):
+  - La primera vez es de calibración.
+  - Si completás el tope del rango en todas las series, sin dolor y con margen, la próxima sesión sube el incremento mínimo.
+  - Si no, mantiene el peso y pide 1 repetición más.
+  - Con dolor o mala recuperación no sube; con dolor fuerte baja un 10 %.
+- **Modo guiado**: "Hecha" completa la serie con lo indicado, los ejercicios terminados se cierran y la sesión termina solo con "Finalizar entrenamiento". Cada ejercicio tiene un link a una **búsqueda** de YouTube con su técnica; no es un video elegido a mano.
+- **Control semanal** (`src/lib/checkin.ts`): promedio semanal de peso, abdomen, pecho y bíceps, más energía, hambre y recuperación. Sugiere −150 o +150 kcal, más pasos o menos volumen según criterios explícitos, y cada cambio requiere aceptación.
+- **Calorías** (`src/lib/energy.ts`): metabolismo basal con Mifflin-St Jeor por un factor de actividad, con un déficit de ~25 %. Es una estimación de ±10–15 % que se ajusta con el control semanal.
 
 ## Respaldo y restauración
 
@@ -120,10 +131,10 @@ El repositorio es público y el código no tiene datos personales. Tu perfil se 
 ## Nutrición
 
 - Catálogo local `src/data/foods.ts`: valores aproximados por 100 g, principalmente de **USDA FoodData Central (SR Legacy)**, con el nombre de cada alimento en esa base. Los que no tienen equivalente claro dicen "Estimación aproximada".
-- **Varias opciones por comida** (`src/data/menu.ts`): 8 desayunos, 11 almuerzos, 8 meriendas y 8 cenas, intercambiables. Cada día trae una sugerida y desde Comidas → "Ver opciones" se puede elegir cualquier otra.
+- **Varias opciones por comida** (`src/data/menu.ts`): 8 desayunos (incluido bife con huevos duros), 9 almuerzos, 6 meriendas (whey en agua) y 8 cenas, intercambiables. Cada comida muestra calorías, proteínas, carbohidratos y grasas. En Compras o Preparación, el botón "Enviar" comparte el menú, la lista de compras y la preparación con quien cocina.
 - **Cenas sin carbohidratos:** carne, pollo o pescado con ensaladas o verduras. Sin arroz, papa, batata, pan, fideos ni legumbres. Los carbohidratos del día van en desayuno, almuerzo y merienda.
 - Las opciones solo tienen gramos. Calorías y proteína se **calculan** desde el catálogo. Cada comida está dentro de un rango de calorías parecido (desayuno 520–620, almuerzo 860–960, merienda 480–540, cena 520–600), así que cualquier combinación da un día de ~2.400–2.700 kcal. Los días sugeridos dan 2.509–2.557 kcal y 169–190 g de proteína. Las pruebas lo verifican.
-- Sin avena, leche ni maní. Huevo solo en 2 opciones, siempre con alternativa sin huevo. Queso y yogur solo como opción, desactivada al inicio. Sin suplementos.
+- Sin avena, leche ni maní. Huevo como mucho 4 días de la semana sugerida, siempre con alternativa sin huevo. Queso y yogur solo como opción, desactivada al inicio. Sin suplementos.
 - El texto libre no se estima. Podés cargar valores conocidos, que quedan marcados como "cargado por vos".
 
 ## Estructura

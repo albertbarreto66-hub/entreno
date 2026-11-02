@@ -117,6 +117,22 @@ export async function applyBackup(parsed: ParsedBackup) {
   emitChange('*');
 }
 
+/** ¿El respaldo solo trae perfil, ajustes, metas y medidas (sin comidas, sesiones ni fotos)? */
+export function isProfileOnly(p: ParsedBackup) {
+  const c = p.preview.counts;
+  return !c.meals && !c.sessions && !c.fluids && !c.photos && !c.days && !c.health;
+}
+
+/** Carga perfil y medidas de un archivo de perfil SIN borrar los registros existentes. */
+export async function mergeProfile(parsed: ParsedBackup) {
+  const db = await getDB();
+  const tx = db.transaction(['kv', 'body', 'goals'], 'readwrite');
+  for (const r of parsed.stores.kv) if (r.key === 'profile') await tx.objectStore('kv').put(r);
+  for (const r of parsed.stores.body) if (!(await tx.objectStore('body').get(r.id as string))) await tx.objectStore('body').put(r);
+  await tx.done;
+  emitChange('*');
+}
+
 export async function currentCounts() {
   const db = await getDB();
   const out: Record<string, number> = {};

@@ -22,16 +22,20 @@ describe('catálogo y menú', () => {
         expect(m.noEgg!.items.some((i) => FOOD_BY_ID[i.foodId].egg)).toBe(false);
       }
     }
+    // Huevos: como mucho 4 días de la semana sugerida y siempre con alternativa sin huevo
     const eggDays = MENU.filter((d) => Object.values(d.meals).some((m) => m.items.some((i) => FOOD_BY_ID[i.foodId].egg)));
-    expect(eggDays.length).toBeLessThanOrEqual(2);
+    expect(eggDays.length).toBeLessThanOrEqual(4);
   });
   it('los totales diarios (calculados, no escritos a mano) caen en el rango de referencia', () => {
     for (const d of MENU) for (const noEgg of [false, true]) {
       const t = menuDayTotals(d.day, noEgg);
-      expect(t.kcal, `${d.name} kcal`).toBeGreaterThanOrEqual(2450);
-      expect(t.kcal, `${d.name} kcal`).toBeLessThanOrEqual(2750);
-      expect(t.protein, `${d.name} prot`).toBeGreaterThanOrEqual(160);
-      expect(t.protein, `${d.name} prot`).toBeLessThanOrEqual(195);
+      expect(t.kcal, `${d.name} kcal`).toBeGreaterThanOrEqual(2380);
+      expect(t.kcal, `${d.name} kcal`).toBeLessThanOrEqual(2600);
+      expect(t.protein, `${d.name} prot`).toBeGreaterThanOrEqual(170);
+      expect(t.protein, `${d.name} prot`).toBeLessThanOrEqual(205);
+      expect(t.fat, `${d.name} grasas`).toBeGreaterThanOrEqual(55);
+      expect(t.fat, `${d.name} grasas`).toBeLessThanOrEqual(95);
+      expect(t.fiber, `${d.name} fibra`).toBeGreaterThanOrEqual(22);
     }
   });
   it('las cenas no tienen carbohidratos principales: solo proteína con ensaladas o verduras', () => {
@@ -47,7 +51,7 @@ describe('catálogo y menú', () => {
     for (const d of MENU) expect(DINNER_EXCLUDED.some((id) => d.meals.cena.items.some((i) => i.foodId === id))).toBe(false);
   });
   it('varias opciones por comida, con ids únicos y porciones parecidas para poder intercambiarlas', () => {
-    const bands = { desayuno: [520, 620], almuerzo: [860, 960], merienda: [480, 540], cena: [520, 600] } as const;
+    const bands = { desayuno: [600, 680], almuerzo: [760, 840], merienda: [400, 480], cena: [540, 600] } as const;
     const ids = new Set<string>();
     for (const [slot, opts] of Object.entries(OPTIONS) as [keyof typeof bands, typeof OPTIONS.cena][]) {
       expect(opts.length, slot).toBeGreaterThanOrEqual(6);
@@ -64,13 +68,19 @@ describe('catálogo y menú', () => {
     // Cualquier combinación de opciones queda cerca de la referencia diaria
     const minDay = (Object.keys(bands) as (keyof typeof bands)[]).reduce((a, k) => a + Math.min(...OPTIONS[k].map((o) => sumItems(o.items).kcal)), 0);
     const maxDay = (Object.keys(bands) as (keyof typeof bands)[]).reduce((a, k) => a + Math.max(...OPTIONS[k].map((o) => sumItems(o.items).kcal)), 0);
-    expect(minDay).toBeGreaterThanOrEqual(2380);
-    expect(maxDay).toBeLessThanOrEqual(2750);
+    expect(minDay).toBeGreaterThanOrEqual(2300);
+    expect(maxDay).toBeLessThanOrEqual(2650);
   });
-  it('cálculo comprobable: 230 g pollo crudo = 276 kcal y 51,75 g proteína', () => {
+  it('cálculo comprobable: 230 g pollo crudo = 276 kcal y 51,75 g proteína; macros coherentes con las calorías', () => {
     const t = sumItems([{ foodId: 'pollo-pechuga-cruda', grams: 230 }]);
     expect(t.kcal).toBeCloseTo(276);
     expect(t.protein).toBeCloseTo(51.75);
+    // 4 kcal/g proteína y carbohidratos, 9 kcal/g grasa: cada alimento debe cerrar dentro de ±20 % (factores Atwater generales)
+    // (las verduras de muy pocas calorías se excluyen: la fibra desvía el cálculo general)
+    for (const f of FOODS.filter((x) => x.kcal >= 50)) {
+      const est = f.protein * 4 + f.carbs * 4 + f.fat * 9;
+      expect(Math.abs(est - f.kcal) / f.kcal, f.id).toBeLessThan(0.2);
+    }
   });
   it('texto libre sin datos no se estima', () => {
     const m: MealLog = { id: '1', date: '2026-10-22', slot: 'cena', title: 'x', items: [], freeText: 'empanadas', createdAt: 0, updatedAt: 0 };
@@ -87,9 +97,9 @@ describe('catálogo y menú', () => {
   });
   it('lista de compras suma la semana', () => {
     const g = shoppingList();
-    const pollo = g.proteina.find((x) => x.food.id === 'pollo-pechuga-cruda')!;
+    const pollo = g.proteina.find((x) => x.food.id === 'carne-magra-cruda')!;
     let expected = 0;
-    for (const d of MENU) for (const m of Object.values(d.meals)) for (const it of m.items) if (it.foodId === 'pollo-pechuga-cruda') expected += it.grams;
+    for (const d of MENU) for (const m of Object.values(d.meals)) for (const it of m.items) if (it.foodId === 'carne-magra-cruda') expected += it.grams;
     expect(pollo.grams).toBe(expected);
   });
 });

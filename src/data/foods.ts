@@ -12,9 +12,12 @@ export type FoodGroup = 'proteina' | 'carbohidrato' | 'fruta' | 'verdura' | 'gra
 export interface Food {
   id: string;
   name: string;
-  state: 'crudo' | 'cocido' | 'listo';
+  state: 'crudo' | 'cocido' | 'listo' | 'polvo';
   kcal: number; // por 100 g
   protein: number; // g por 100 g
+  carbs: number; // g por 100 g
+  fat: number; // g por 100 g
+  fiber: number; // g por 100 g
   group: FoodGroup;
   source: string;
   egg?: boolean;
@@ -25,68 +28,77 @@ export interface Food {
 const U = (d: string) => `USDA FDC SR Legacy: "${d}" (aprox.)`;
 const EST = 'Estimación aproximada (sin fuente verificada en el catálogo)';
 
-export const FOODS: Food[] = [
+type Row = [id: string, name: string, state: Food['state'], kcal: number, p: number, c: number, f: number, fib: number, group: FoodGroup, source: string, extra?: Partial<Food>];
+const rows: Row[] = [
   // Proteínas
-  { id: 'pollo-pechuga-cruda', name: 'Pechuga de pollo sin piel', state: 'crudo', kcal: 120, protein: 22.5, group: 'proteina', source: U('Chicken, broilers or fryers, breast, meat only, raw') },
-  { id: 'pollo-muslo-crudo', name: 'Muslo de pollo sin piel', state: 'crudo', kcal: 120, protein: 19.7, group: 'proteina', source: U('Chicken, broilers or fryers, thigh, meat only, raw') },
-  { id: 'carne-magra-cruda', name: 'Carne vacuna magra (nalga, cuadrada, peceto)', state: 'crudo', kcal: 130, protein: 23, group: 'proteina', source: U('Beef, round, top round, separable lean only, raw') },
-  { id: 'carne-picada-90', name: 'Carne picada especial (90% magra)', state: 'crudo', kcal: 176, protein: 20, group: 'proteina', source: U('Beef, ground, 90% lean meat / 10% fat, raw') },
-  { id: 'cerdo-solomillo-crudo', name: 'Solomillo de cerdo', state: 'crudo', kcal: 120, protein: 21, group: 'proteina', source: U('Pork, fresh, loin, tenderloin, separable lean only, raw') },
-  { id: 'merluza-cruda', name: 'Merluza (filet)', state: 'crudo', kcal: 85, protein: 18, group: 'proteina', source: EST + ' — similar a pescado blanco magro' },
-  { id: 'atun-al-natural', name: 'Atún al natural, escurrido', state: 'listo', kcal: 116, protein: 25.5, group: 'proteina', source: U('Fish, tuna, light, canned in water, drained solids') },
-  { id: 'jamon-cocido', name: 'Jamón cocido magro', state: 'listo', kcal: 120, protein: 18, group: 'proteina', source: EST + ' — varía mucho según marca; revisá la etiqueta' },
-  { id: 'huevo', name: 'Huevo entero', state: 'crudo', kcal: 143, protein: 12.6, group: 'proteina', egg: true, unit: { label: 'huevo', grams: 50 }, source: U('Egg, whole, raw, fresh') },
-  { id: 'lentejas-cocidas', name: 'Lentejas', state: 'cocido', kcal: 116, protein: 9, group: 'proteina', source: U('Lentils, mature seeds, cooked, boiled, without salt') },
-  { id: 'garbanzos-cocidos', name: 'Garbanzos', state: 'cocido', kcal: 164, protein: 8.9, group: 'proteina', source: U('Chickpeas (garbanzo beans), mature seeds, cooked, boiled, without salt') },
+  ['pollo-pechuga-cruda', 'Pechuga de pollo sin piel', 'crudo', 120, 22.5, 0, 2.6, 0, 'proteina', U('Chicken, broilers or fryers, breast, meat only, raw')],
+  ['pollo-muslo-crudo', 'Muslo de pollo sin piel', 'crudo', 120, 19.7, 0, 3.9, 0, 'proteina', U('Chicken, broilers or fryers, thigh, meat only, raw')],
+  ['carne-magra-cruda', 'Carne vacuna magra (nalga, cuadrada, peceto, bife)', 'crudo', 130, 23, 0, 4, 0, 'proteina', U('Beef, round, top round, separable lean only, raw')],
+  ['carne-picada-90', 'Carne picada especial (90% magra)', 'crudo', 176, 20, 0, 10, 0, 'proteina', U('Beef, ground, 90% lean meat / 10% fat, raw')],
+  ['cerdo-solomillo-crudo', 'Solomillo de cerdo', 'crudo', 120, 21, 0, 3.5, 0, 'proteina', U('Pork, fresh, loin, tenderloin, separable lean only, raw')],
+  ['cerdo-carre-crudo', 'Carré de cerdo sin grasa visible', 'crudo', 143, 21, 0, 6, 0, 'proteina', EST + ' — lomo de cerdo magro'],
+  ['merluza-cruda', 'Merluza (filet)', 'crudo', 85, 18, 0, 1.2, 0, 'proteina', EST + ' — similar a pescado blanco magro'],
+  ['atun-al-natural', 'Atún al natural, escurrido', 'listo', 116, 25.5, 0, 0.8, 0, 'proteina', U('Fish, tuna, light, canned in water, drained solids')],
+  ['jamon-cocido', 'Jamón cocido magro', 'listo', 120, 18, 1.5, 4, 0, 'proteina', EST + ' — varía mucho según marca; revisá la etiqueta'],
+  ['huevo', 'Huevo entero', 'crudo', 143, 12.6, 0.7, 9.5, 0, 'proteina', U('Egg, whole, raw, fresh'), { egg: true, unit: { label: 'huevo', grams: 50 } }],
+  ['whey', 'Proteína whey (en agua)', 'polvo', 390, 78, 8, 6, 0, 'proteina', EST + ' — varía según marca: usá los valores de la etiqueta de la tuya', { unit: { label: 'scoop', grams: 30 } }],
+  ['lentejas-cocidas', 'Lentejas', 'cocido', 116, 9, 20.1, 0.4, 7.9, 'proteina', U('Lentils, mature seeds, cooked, boiled, without salt')],
+  ['garbanzos-cocidos', 'Garbanzos', 'cocido', 164, 8.9, 27.4, 2.6, 7.6, 'proteina', U('Chickpeas (garbanzo beans), mature seeds, cooked, boiled, without salt')],
 
   // Carbohidratos
-  { id: 'arroz-crudo', name: 'Arroz blanco', state: 'crudo', kcal: 365, protein: 7.1, group: 'carbohidrato', source: U('Rice, white, long-grain, regular, raw, enriched') },
-  { id: 'arroz-cocido', name: 'Arroz blanco', state: 'cocido', kcal: 130, protein: 2.7, group: 'carbohidrato', source: U('Rice, white, long-grain, regular, enriched, cooked') },
-  { id: 'papa-cruda', name: 'Papa con cáscara', state: 'crudo', kcal: 77, protein: 2, group: 'carbohidrato', source: U('Potatoes, flesh and skin, raw') },
-  { id: 'batata-cruda', name: 'Batata', state: 'crudo', kcal: 86, protein: 1.6, group: 'carbohidrato', source: U('Sweet potato, raw, unprepared') },
-  { id: 'fideos-secos', name: 'Fideos secos', state: 'crudo', kcal: 371, protein: 13, group: 'carbohidrato', source: U('Pasta, dry, enriched') },
-  { id: 'pan-frances', name: 'Pan francés', state: 'listo', kcal: 275, protein: 9, group: 'carbohidrato', source: EST + ' — pan blanco tipo francés' },
-  { id: 'pan-integral', name: 'Pan integral', state: 'listo', kcal: 252, protein: 12.4, group: 'carbohidrato', source: U('Bread, whole-wheat, commercially prepared') },
-  { id: 'galletas-arroz', name: 'Galletas de arroz', state: 'listo', kcal: 387, protein: 8.2, group: 'carbohidrato', unit: { label: 'galleta', grams: 9 }, source: U('Snacks, rice cakes, brown rice, plain') },
-  { id: 'pan-rallado', name: 'Pan rallado', state: 'listo', kcal: 395, protein: 13.4, group: 'carbohidrato', source: U('Bread, crumbs, dry, grated, plain') },
-  { id: 'choclo', name: 'Choclo en granos', state: 'crudo', kcal: 86, protein: 3.3, group: 'carbohidrato', source: U('Corn, sweet, yellow, raw') },
+  ['arroz-crudo', 'Arroz blanco', 'crudo', 365, 7.1, 80, 0.7, 1.3, 'carbohidrato', U('Rice, white, long-grain, regular, raw, enriched')],
+  ['arroz-cocido', 'Arroz blanco', 'cocido', 130, 2.7, 28.2, 0.3, 0.4, 'carbohidrato', U('Rice, white, long-grain, regular, enriched, cooked')],
+  ['papa-cruda', 'Papa con cáscara', 'crudo', 77, 2, 17.5, 0.1, 2.1, 'carbohidrato', U('Potatoes, flesh and skin, raw')],
+  ['batata-cruda', 'Batata', 'crudo', 86, 1.6, 20.1, 0.1, 3, 'carbohidrato', U('Sweet potato, raw, unprepared')],
+  ['fideos-secos', 'Fideos secos', 'crudo', 371, 13, 75, 1.5, 3.2, 'carbohidrato', U('Pasta, dry, enriched')],
+  ['pan-frances', 'Pan francés', 'listo', 275, 9, 56, 1.5, 2.5, 'carbohidrato', EST + ' — pan blanco tipo francés'],
+  ['pan-integral', 'Pan integral', 'listo', 252, 12.4, 43, 3.5, 6, 'carbohidrato', U('Bread, whole-wheat, commercially prepared')],
+  ['galletas-arroz', 'Galletas de arroz', 'listo', 387, 8.2, 81.5, 2.8, 4.2, 'carbohidrato', U('Snacks, rice cakes, brown rice, plain'), { unit: { label: 'galleta', grams: 9 } }],
+  ['pan-rallado', 'Pan rallado', 'listo', 395, 13.4, 72, 5.3, 4.5, 'carbohidrato', U('Bread, crumbs, dry, grated, plain')],
+  ['choclo', 'Choclo en granos', 'crudo', 86, 3.3, 19, 1.4, 2, 'carbohidrato', U('Corn, sweet, yellow, raw')],
 
   // Frutas
-  { id: 'banana', name: 'Banana', state: 'crudo', kcal: 89, protein: 1.1, group: 'fruta', unit: { label: 'banana mediana', grams: 120 }, source: U('Bananas, raw') },
-  { id: 'manzana', name: 'Manzana', state: 'crudo', kcal: 52, protein: 0.3, group: 'fruta', unit: { label: 'manzana mediana', grams: 180 }, source: U('Apples, raw, with skin') },
-  { id: 'naranja', name: 'Naranja', state: 'crudo', kcal: 47, protein: 0.9, group: 'fruta', unit: { label: 'naranja mediana', grams: 180 }, source: U('Oranges, raw, all commercial varieties') },
-  { id: 'mandarina', name: 'Mandarina', state: 'crudo', kcal: 53, protein: 0.8, group: 'fruta', unit: { label: 'mandarina', grams: 90 }, source: U('Tangerines, (mandarin oranges), raw') },
-  { id: 'frutillas', name: 'Frutillas', state: 'crudo', kcal: 32, protein: 0.7, group: 'fruta', source: U('Strawberries, raw') },
-  { id: 'pera', name: 'Pera', state: 'crudo', kcal: 57, protein: 0.4, group: 'fruta', unit: { label: 'pera mediana', grams: 180 }, source: U('Pears, raw') },
-  { id: 'kiwi', name: 'Kiwi', state: 'crudo', kcal: 61, protein: 1.1, group: 'fruta', unit: { label: 'kiwi', grams: 75 }, source: U('Kiwifruit, green, raw') },
+  ['banana', 'Banana', 'crudo', 89, 1.1, 22.8, 0.3, 2.6, 'fruta', U('Bananas, raw'), { unit: { label: 'banana mediana', grams: 120 } }],
+  ['manzana', 'Manzana', 'crudo', 52, 0.3, 13.8, 0.2, 2.4, 'fruta', U('Apples, raw, with skin'), { unit: { label: 'manzana mediana', grams: 180 } }],
+  ['naranja', 'Naranja', 'crudo', 47, 0.9, 11.8, 0.1, 2.4, 'fruta', U('Oranges, raw, all commercial varieties'), { unit: { label: 'naranja mediana', grams: 180 } }],
+  ['mandarina', 'Mandarina', 'crudo', 53, 0.8, 13.3, 0.3, 1.8, 'fruta', U('Tangerines, (mandarin oranges), raw'), { unit: { label: 'mandarina', grams: 90 } }],
+  ['frutillas', 'Frutillas', 'crudo', 32, 0.7, 7.7, 0.3, 2, 'fruta', U('Strawberries, raw')],
+  ['pera', 'Pera', 'crudo', 57, 0.4, 15.2, 0.1, 3.1, 'fruta', U('Pears, raw'), { unit: { label: 'pera mediana', grams: 180 } }],
+  ['kiwi', 'Kiwi', 'crudo', 61, 1.1, 14.7, 0.5, 3, 'fruta', U('Kiwifruit, green, raw'), { unit: { label: 'kiwi', grams: 75 } }],
 
   // Verduras
-  { id: 'tomate', name: 'Tomate', state: 'crudo', kcal: 18, protein: 0.9, group: 'verdura', source: U('Tomatoes, red, ripe, raw, year round average') },
-  { id: 'lechuga', name: 'Lechuga', state: 'crudo', kcal: 15, protein: 1.4, group: 'verdura', source: U('Lettuce, green leaf, raw') },
-  { id: 'zanahoria', name: 'Zanahoria', state: 'crudo', kcal: 41, protein: 0.9, group: 'verdura', source: U('Carrots, raw') },
-  { id: 'zapallo', name: 'Zapallo / calabaza', state: 'crudo', kcal: 45, protein: 1, group: 'verdura', source: U('Squash, winter, butternut, raw') },
-  { id: 'zapallito', name: 'Zapallito / zucchini', state: 'crudo', kcal: 17, protein: 1.2, group: 'verdura', source: U('Squash, summer, zucchini, includes skin, raw') },
-  { id: 'brocoli', name: 'Brócoli', state: 'crudo', kcal: 34, protein: 2.8, group: 'verdura', source: U('Broccoli, raw') },
-  { id: 'cebolla', name: 'Cebolla', state: 'crudo', kcal: 40, protein: 1.1, group: 'verdura', source: U('Onions, raw') },
-  { id: 'morron', name: 'Morrón rojo', state: 'crudo', kcal: 31, protein: 1, group: 'verdura', source: U('Peppers, sweet, red, raw') },
-  { id: 'espinaca', name: 'Espinaca', state: 'crudo', kcal: 23, protein: 2.9, group: 'verdura', source: U('Spinach, raw') },
-  { id: 'pepino', name: 'Pepino', state: 'crudo', kcal: 15, protein: 0.7, group: 'verdura', source: U('Cucumber, with peel, raw') },
-  { id: 'chaucha', name: 'Chauchas', state: 'crudo', kcal: 31, protein: 1.8, group: 'verdura', source: U('Beans, snap, green, raw') },
+  ['tomate', 'Tomate', 'crudo', 18, 0.9, 3.9, 0.2, 1.2, 'verdura', U('Tomatoes, red, ripe, raw, year round average')],
+  ['lechuga', 'Lechuga', 'crudo', 15, 1.4, 2.9, 0.2, 1.3, 'verdura', U('Lettuce, green leaf, raw')],
+  ['zanahoria', 'Zanahoria', 'crudo', 41, 0.9, 9.6, 0.2, 2.8, 'verdura', U('Carrots, raw')],
+  ['zapallo', 'Zapallo / calabaza', 'crudo', 45, 1, 11.7, 0.1, 2, 'verdura', U('Squash, winter, butternut, raw')],
+  ['zapallito', 'Zapallito / zucchini', 'crudo', 17, 1.2, 3.1, 0.3, 1, 'verdura', U('Squash, summer, zucchini, includes skin, raw')],
+  ['brocoli', 'Brócoli', 'crudo', 34, 2.8, 6.6, 0.4, 2.6, 'verdura', U('Broccoli, raw')],
+  ['cebolla', 'Cebolla', 'crudo', 40, 1.1, 9.3, 0.1, 1.7, 'verdura', U('Onions, raw')],
+  ['morron', 'Morrón rojo', 'crudo', 31, 1, 6, 0.3, 2.1, 'verdura', U('Peppers, sweet, red, raw')],
+  ['espinaca', 'Espinaca', 'crudo', 23, 2.9, 3.6, 0.4, 2.2, 'verdura', U('Spinach, raw')],
+  ['pepino', 'Pepino', 'crudo', 15, 0.7, 3.6, 0.1, 0.5, 'verdura', U('Cucumber, with peel, raw')],
+  ['chaucha', 'Chauchas', 'crudo', 31, 1.8, 7, 0.2, 2.7, 'verdura', U('Beans, snap, green, raw')],
+  ['rucula', 'Rúcula', 'crudo', 25, 2.6, 3.7, 0.7, 1.6, 'verdura', U('Arugula, raw')],
+  ['repollo', 'Repollo', 'crudo', 25, 1.3, 5.8, 0.1, 2.5, 'verdura', U('Cabbage, raw')],
 
   // Grasas y aderezos
-  { id: 'aceite', name: 'Aceite (girasol u oliva)', state: 'listo', kcal: 884, protein: 0, group: 'grasa', unit: { label: 'cucharada', grams: 13 }, source: U('Oil, olive, salad or cooking') },
-  { id: 'palta', name: 'Palta', state: 'crudo', kcal: 160, protein: 2, group: 'grasa', source: U('Avocados, raw, all commercial varieties') },
-  { id: 'almendras', name: 'Almendras', state: 'crudo', kcal: 579, protein: 21, group: 'grasa', source: U('Nuts, almonds') },
-  { id: 'nueces', name: 'Nueces', state: 'crudo', kcal: 654, protein: 15, group: 'grasa', source: U('Nuts, english walnuts') },
-  { id: 'mostaza', name: 'Mostaza', state: 'listo', kcal: 60, protein: 3.7, group: 'otro', source: U('Mustard, prepared, yellow') },
-  { id: 'mermelada', name: 'Mermelada', state: 'listo', kcal: 250, protein: 0.4, group: 'otro', source: U('Jams and preserves') },
-  { id: 'miel', name: 'Miel', state: 'listo', kcal: 304, protein: 0.3, group: 'otro', source: U('Honey') },
-  { id: 'limon-jugo', name: 'Jugo de limón', state: 'listo', kcal: 22, protein: 0.4, group: 'otro', source: U('Lemon juice, raw') },
+  ['aceite', 'Aceite (girasol u oliva)', 'listo', 884, 0, 0, 100, 0, 'grasa', U('Oil, olive, salad or cooking'), { unit: { label: 'cucharada', grams: 13 } }],
+  ['palta', 'Palta', 'crudo', 160, 2, 8.5, 14.7, 6.7, 'grasa', U('Avocados, raw, all commercial varieties')],
+  ['almendras', 'Almendras', 'crudo', 579, 21, 21.6, 50, 12.5, 'grasa', U('Nuts, almonds')],
+  ['nueces', 'Nueces', 'crudo', 654, 15, 13.7, 65, 6.7, 'grasa', U('Nuts, english walnuts')],
+  ['mostaza', 'Mostaza', 'listo', 60, 3.7, 5.8, 3.3, 4, 'otro', U('Mustard, prepared, yellow')],
+  ['mermelada', 'Mermelada', 'listo', 250, 0.4, 69, 0.1, 1, 'otro', U('Jams and preserves')],
+  ['miel', 'Miel', 'listo', 304, 0.3, 82, 0, 0.2, 'otro', U('Honey')],
+  ['limon-jugo', 'Jugo de limón', 'listo', 22, 0.4, 6.9, 0.2, 0.3, 'otro', U('Lemon juice, raw')],
 
   // Lácteos (desactivados al inicio; se habilitan en Ajustes)
-  { id: 'yogur-natural-desc', name: 'Yogur natural descremado', state: 'listo', kcal: 56, protein: 5.7, group: 'lacteo', dairy: true, source: U('Yogurt, plain, skim milk, 13 grams protein per 8 ounce') },
-  { id: 'ricota-desc', name: 'Ricota descremada', state: 'listo', kcal: 138, protein: 11.4, group: 'lacteo', dairy: true, source: U('Cheese, ricotta, part skim milk') },
+  ['yogur-natural-desc', 'Yogur natural descremado', 'listo', 56, 5.7, 7.7, 0.2, 0, 'lacteo', U('Yogurt, plain, skim milk, 13 grams protein per 8 ounce'), { dairy: true }],
+  ['ricota-desc', 'Ricota descremada', 'listo', 138, 11.4, 5.1, 7.9, 0, 'lacteo', U('Cheese, ricotta, part skim milk'), { dairy: true }],
 ];
+
+export const FOODS: Food[] = rows.map(([id, name, state, kcal, protein, carbs, fat, fiber, group, source, extra]) => ({
+  id, name, state, kcal, protein, carbs, fat, fiber, group, source, ...extra,
+}));
 
 export const FOOD_BY_ID: Record<string, Food> = Object.fromEntries(FOODS.map((f) => [f.id, f]));
 

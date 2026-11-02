@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ProgramView, WeeklyControl } from './Program';
 import { useNav } from '../App';
 import { Chart } from '../components/Chart';
 import { Chip, CountUp, Empty, Field, IconBadge, Segmented, Sheet, useConfirm, useToast } from '../components/ui';
@@ -23,11 +24,16 @@ import { KIND_LABEL } from '../health/classify';
 const C = { main: 'var(--c-train)', avg: 'var(--c-water)', soft: 'var(--c-steps)', weight: 'var(--c-weight)', sleep: 'var(--c-sleep)', amber: 'var(--c-meal)' };
 
 export function Progress() {
-  const [tab, setTab] = useState<'graficos' | 'fotos'>('graficos');
+  const { sub } = useNav();
+  const [tab, setTab] = useState<'control' | 'graficos' | 'fotos' | 'programa'>(sub === 'programa' ? 'programa' : 'control');
+  useEffect(() => { if (sub === 'programa') setTab('programa'); }, [sub]);
   return (
     <div className="stack-lg">
-      <Segmented label="Sección" value={tab} onChange={setTab} options={[{ value: 'graficos', label: 'Gráficos' }, { value: 'fotos', label: 'Fotos' }]} />
-      {tab === 'graficos' ? <Charts /> : <Photos />}
+      <Segmented label="Sección" value={tab} onChange={setTab} options={[{ value: 'control', label: 'Control' }, { value: 'graficos', label: 'Gráficos' }, { value: 'fotos', label: 'Fotos' }, { value: 'programa', label: 'Programa' }]} />
+      {tab === 'control' && <WeeklyControl />}
+      {tab === 'graficos' && <Charts />}
+      {tab === 'fotos' && <Photos />}
+      {tab === 'programa' && <ProgramView />}
     </div>
   );
 }
@@ -48,6 +54,8 @@ function Charts() {
 
   const weight = body.filter((b) => b.weightKg != null).map((b) => ({ date: b.date, value: b.weightKg! }));
   const waist = body.filter((b) => b.waistCm != null).map((b) => ({ date: b.date, value: b.waistCm! }));
+  const chest = body.filter((b) => b.chestCm != null).map((b) => ({ date: b.date, value: b.chestCm! }));
+  const biceps = body.filter((b) => b.bicepsCm != null).map((b) => ({ date: b.date, value: b.bicepsCm! }));
   const wAvg = weeklyAverages(weight).map((w) => ({ date: addDays(w.week, 3), value: w.avg }));
   const steps = range.filter((d) => d.steps.value != null).map((d) => ({ date: d.date, value: d.steps.value! }));
   const sAvg = weeklyAverages(steps).map((w) => ({ date: addDays(w.week, 3), value: w.avg }));
@@ -87,9 +95,15 @@ function Charts() {
       </section>
 
       <section className="card stack">
-        <h2 className="h2"><IconBadge tone="weight" size="sm"><IconScale /></IconBadge>Cintura</h2>
+        <h2 className="h2"><IconBadge tone="weight" size="sm"><IconScale /></IconBadge>Abdomen (cintura)</h2>
         {waist.length ? <Chart ariaLabel="Cintura" unit="cm" series={[{ label: 'Cintura', points: waist, style: 'dots', color: C.main }]} /> : <Empty>Sin mediciones de cintura en este período.</Empty>}
         {waist.length > 0 && <p className="small">{trend(waist, 'cm').message}</p>}
+      </section>
+
+      <section className="card stack">
+        <h2 className="h2"><IconBadge tone="steps" size="sm"><IconEntrenar /></IconBadge>Pecho y bíceps</h2>
+        {chest.length || biceps.length ? <Chart ariaLabel="Pecho y bíceps" unit="cm" series={[{ label: 'Pecho', points: chest, style: 'dots', color: C.soft }, { label: 'Bíceps', points: biceps, style: 'dots', color: C.avg }]} /> : <Empty>Cargá pecho y bíceps una vez por semana desde "+ Registrar".</Empty>}
+        <p className="small muted">Mientras bajás grasa, el pecho suele achicarse (es grasa) y el bíceps puede mantenerse: si el bíceps se mantiene y la fuerza sube, vas bien.</p>
       </section>
 
       {body.length > 0 && (

@@ -53,7 +53,7 @@ export function Meals() {
       {tab === 'dia' && <DayMeals {...data} date={date} onEdit={setEditing} onChoose={setChoosing} />}
       {tab === 'menu' && <MenuView dairy={data.settings.dairyEnabled} preferNoEgg={data.settings.preferNoEgg} today={date} />}
       {tab === 'compras' && <Shopping noEgg={data.settings.preferNoEgg} />}
-      {tab === 'prep' && <Prep />}
+      {tab === 'prep' && <Prep noEgg={data.settings.preferNoEgg} />}
       <p className="small muted">Calorías y proteínas son estimaciones con un catálogo local de valores aproximados (principalmente USDA FoodData Central, SR Legacy). Las referencias de 2.500–2.700 kcal y 160–190 g de proteína son iniciales y editables, no una prescripción médica.</p>
       {editing && <MealEditor meal={editing} dairy={data.settings.dairyEnabled} onClose={() => setEditing(null)} />}
       {choosing && <OptionsSheet slot={choosing} date={date} noEgg={data.settings.preferNoEgg} onClose={() => setChoosing(null)}
@@ -70,8 +70,8 @@ function DayMeals({ meals, settings, goals, date, onEdit, onChoose }: { meals: M
     <>
       <section className="card">
         <h2 className="h2">Total registrado</h2>
-        <div className="macros" style={{ margin: '4px 0 8px' }}><span className="macro kcal" style={{ fontSize: '1.3rem' }}><CountUp value={tot.kcal} /><small>kcal</small></span><span className="macro prot" style={{ fontSize: '1.3rem' }}><CountUp value={tot.protein} /> g<small>proteína</small></span></div>
-        <p className="small muted">Referencia inicial editable: {kcalRef ? `${n0(kcalRef)} kcal${kcalRef === 2600 ? " (rango inicial 2.500–2.700)" : ""}` : 'sin referencia'} · {protRef ? `${n0(protRef)} g proteína` : 'sin referencia'}.{tot.withoutData ? ` ${tot.withoutData} comida(s) sin datos nutricionales (texto libre): no se estiman.` : ''}</p>
+        <div style={{ margin: '4px 0 8px' }}><Macros t={tot} big /></div>
+        <p className="small muted">Objetivo diario: {kcalRef ? `${n0(kcalRef)} kcal` : 'sin objetivo'} · {protRef ? `${n0(protRef)} g de proteína` : 'sin objetivo'} (editable en Ajustes → Metas).{tot.withoutData ? ` ${tot.withoutData} comida(s) sin datos nutricionales (texto libre): no se estiman.` : ''}</p>
         <label className="switch"><input type="checkbox" checked={settings.preferNoEgg} onChange={(e) => patchSettings({ preferNoEgg: e.target.checked })} /><span>Usar siempre la alternativa sin huevo</span></label>
       </section>
       {[...MAIN_SLOTS, 'extra' as MealSlot].map((slot) => {
@@ -128,6 +128,19 @@ function DayMeals({ meals, settings, goals, date, onEdit, onChoose }: { meals: M
   );
 }
 
+/** Chips de calorías y macros (estimados con el catálogo). */
+export function Macros({ t, big }: { t: { kcal: number; protein: number; carbs?: number; fat?: number }; big?: boolean }) {
+  const st = big ? { fontSize: '1.25rem' } : undefined;
+  return (
+    <div className="macros">
+      <span className="macro kcal" style={st}>{big ? <CountUp value={t.kcal} /> : `≈ ${n0(t.kcal)}`}<small>kcal</small></span>
+      <span className="macro prot" style={st}>{big ? <CountUp value={t.protein} /> : n0(t.protein)} g<small>prot.</small></span>
+      {t.carbs != null && <span className="macro carb" style={st}>{big ? <CountUp value={t.carbs} /> : n0(t.carbs)} g<small>carb.</small></span>}
+      {t.fat != null && <span className="macro fat" style={st}>{big ? <CountUp value={t.fat} /> : n0(t.fat)} g<small>grasas</small></span>}
+    </div>
+  );
+}
+
 function PlanItems({ items }: { items: FoodItem[] }) {
   const t = sumItems(items);
   return (
@@ -139,7 +152,7 @@ function PlanItems({ items }: { items: FoodItem[] }) {
           return <li key={i}><span>{f.name} <span className="muted small">({f.state})</span></span><span>{it.grams} g</span><span className="muted small">{n0(tt.kcal)} kcal · {tt.protein.toFixed(1).replace('.', ',')} g</span></li>;
         })}
       </ul>
-      <div className="macros"><span className="macro kcal">≈ {n0(t.kcal)}<small>kcal</small></span><span className="macro prot">{n0(t.protein)} g<small>proteína</small></span></div>
+      <Macros t={t} />
     </>
   );
 }
@@ -242,7 +255,7 @@ function MealEditor({ meal, dairy, onClose }: { meal: MealLog; dairy: boolean; o
             </select>
             <button className="btn secondary" disabled={!addId} onClick={() => { set({ items: [...m.items, { foodId: addId, grams: FOOD_BY_ID[addId].unit?.grams ?? 100 }] }); setAddId(''); }}>Agregar</button>
           </div>
-          <p><b>≈ {n0(t.kcal)} kcal · {n0(t.protein)} g proteína</b></p>
+          <Macros t={t} />
         </>
       ) : (
         <>
@@ -285,7 +298,8 @@ function MenuView({ dairy, preferNoEgg, today }: { dairy: boolean; preferNoEgg: 
       </div>
       <section className="card">
         <h2 className="h2">{d.name}</h2>
-        <p><b>≈ {n0(tot.kcal)} kcal · {n0(tot.protein)} g proteína</b> <span className="small muted">(calculado con el catálogo{preferNoEgg ? ', versión sin huevo' : ''})</span></p>
+        <Macros t={tot} />
+        <p className="small muted">Calculado con el catálogo{preferNoEgg ? ', versión sin huevo' : ''} · fibra ≈ {n0(tot.fiber)} g</p>
       </section>
       {MAIN_SLOTS.map((slot) => {
         const meal = d.meals[slot as Exclude<MealSlot, 'extra'>];
@@ -325,6 +339,7 @@ function Shopping({ noEgg }: { noEgg: boolean }) {
   const fmtG = (g: number) => (g >= 1000 ? `${(g / 1000).toLocaleString('es-AR', { maximumFractionDigits: 2 })} kg` : `${g} g`);
   return (
     <>
+      <ShareForCook noEgg={noEgg} />
       <section className="card"><h2 className="h2">Lista semanal de compras</h2><p className="small muted">Cantidades del menú de 7 días en el estado indicado (crudo, cocido o listo). Las legumbres figuran cocidas: comprá ~40% de ese peso en seco.</p>
         {checked.length > 0 && <button className="btn ghost small" onClick={() => kvSet('shoppingChecked', [], true)}>Desmarcar todo</button>}</section>
       {Object.entries(groups).map(([g, items]) => (
@@ -345,9 +360,10 @@ function Shopping({ noEgg }: { noEgg: boolean }) {
   );
 }
 
-function Prep() {
+function Prep({ noEgg }: { noEgg: boolean }) {
   return (
     <>
+      <ShareForCook noEgg={noEgg} />
       {PREP_DAYS.map((p) => (
         <section key={p.name} className="card">
           <h2 className="h2">Preparación del {p.name.toLowerCase()}</h2>
@@ -380,7 +396,7 @@ function OptionsSheet({ slot, date, noEgg, onClose, onModify }: { slot: MainSlot
           <div key={o.id} className={`option ${o.id === plan.meal.id ? 'suggested' : ''}`}>
             <div className="row between"><b>{v.title}</b>{o.id === plan.meal.id && <Chip tone="green">Sugerida hoy</Chip>}</div>
             <p className="small muted">{v.items.map((it) => `${FOOD_BY_ID[it.foodId].name} ${it.grams} g`).join(' · ')}</p>
-            <div className="macros"><span className="macro kcal">≈ {n0(t.kcal)}<small>kcal</small></span><span className="macro prot">{n0(t.protein)} g<small>proteína</small></span></div>
+            <Macros t={t} />
             <p className="small">{v.recipe}</p>
             <div className="row gap wrap">
               <button className="btn primary small" onClick={async () => { await logPlanMeal(date, slot, noEgg, day, o.id); toast(`${SLOT_LABEL[slot]} registrado`); onClose(); }}>Comí esto</button>
@@ -391,5 +407,46 @@ function OptionsSheet({ slot, date, noEgg, onClose, onModify }: { slot: MainSlot
       })}
       <p className="tiny muted">Alimentos que no se usan en la cena: {DINNER_EXCLUDED.map((id) => FOOD_BY_ID[id]?.name).filter(Boolean).join(', ')}.</p>
     </Sheet>
+  );
+}
+
+/** Texto listo para mandarle a quien cocina: menú de la semana con gramos, compras y preparación. */
+export function cookText(noEgg: boolean) {
+  const fmtG = (g: number) => (g >= 1000 ? `${(g / 1000).toLocaleString('es-AR', { maximumFractionDigits: 2 })} kg` : `${g} g`);
+  const lines: string[] = ['MENÚ DE LA SEMANA (pesos en el estado indicado: crudo, cocido o listo)', ''];
+  for (const d of MENU) {
+    lines.push(`*${d.name.toUpperCase()}*`);
+    for (const slot of MAIN_SLOTS) {
+      const v = mealVariant(d.meals[slot as MainSlot], noEgg);
+      lines.push(`${SLOT_LABEL[slot]}: ${v.title}`);
+      lines.push('  ' + v.items.map((it) => `${FOOD_BY_ID[it.foodId].name} ${it.grams} g (${FOOD_BY_ID[it.foodId].state})`).join(', '));
+      lines.push(`  Cómo: ${v.recipe}`);
+    }
+    lines.push('');
+  }
+  lines.push('LISTA DE COMPRAS');
+  for (const items of Object.values(shoppingList(undefined, noEgg))) for (const { food, grams } of items) lines.push(`- ${food.name} (${food.state}): ${fmtG(grams)}`);
+  lines.push('', 'PREPARACIÓN ANTICIPADA');
+  for (const p of PREP_DAYS) { lines.push(`${p.name} (${p.note})`); for (const t of prepTasks(p.covers)) lines.push(`- ${t}`); }
+  lines.push('', 'Cenas sin arroz, papa, batata, pan ni fideos: solo carne, pollo o pescado con ensalada o verduras.');
+  return lines.join('\n');
+}
+
+function ShareForCook({ noEgg }: { noEgg: boolean }) {
+  const toast = useToast();
+  const share = async () => {
+    const text = cookText(noEgg);
+    try {
+      if (navigator.share) { await navigator.share({ title: 'Menú y compras de la semana', text }); return; }
+    } catch (e) { if ((e as Error).name === 'AbortError') return; }
+    try { await navigator.clipboard.writeText(text); toast('Copiado: pegalo en WhatsApp'); } catch { toast('No se pudo copiar el texto', 'error'); }
+  };
+  return (
+    <section className="card share-cook">
+      <div className="row between gap">
+        <div><b>Para quien cocina</b><p className="small muted">Menú de la semana con gramos y recetas, lista de compras y preparación.</p></div>
+        <button className="btn primary small" onClick={share}>Enviar</button>
+      </div>
+    </section>
   );
 }

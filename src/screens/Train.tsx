@@ -1,35 +1,36 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNav } from '../App';
 import { NumInput } from '../components/NumInput';
 import { celebrate, Chip, Field, Sheet, useConfirm, useToast } from '../components/ui';
+import { blockForWeek, isDeloadWeek, PROGRAM_WEEKS } from '../data/program';
+import { PRECHECK_TEXT, videoUrl } from '../data/templates';
+import { getSettings } from '../lib/app';
+import { formatLong, formatShort } from '../lib/dates';
+import { all, byDate, kvGet, kvSet, patchDay, put } from '../lib/db';
+import { useLive, useNow } from '../lib/hooks';
+import {
+  describeSets, doneSets, exerciseHistory, finishStatus, fmtKg, getTemplates, newSession, programWeek, templateForDate, type DayContext,
+} from '../lib/training';
+import type { DayLog, DayTemplate, ExerciseLog, ExerciseTemplate, Prescription, SessionStatus, WorkoutSession } from '../lib/types';
 
 function celebrateCenter() {
   const el = document.querySelector('.hero');
   if (el) celebrate(el);
 }
-import { PRECHECK_TEXT } from '../data/templates';
-import { getSettings, patchSettings } from '../lib/app';
-import { formatLong, formatShort } from '../lib/dates';
-import { all, byDate, kvGet, kvSet, patchDay, put } from '../lib/db';
-import { useLive, useNow } from '../lib/hooks';
-import {
-  describeSets, doneSets, exerciseHistory, finishStatus, fmtKg, getTemplates, newSession, programWeek,
-  progressionSuggestion, templateForDate,
-} from '../lib/training';
-import type { DayLog, DayTemplate, ExerciseLog, ExerciseState, ExerciseTemplate, SessionStatus, WorkoutSession } from '../lib/types';
 
 const STATUS_LABEL: Record<SessionStatus, string> = { 'en-curso': 'En curso', completada: 'Completada', incompleta: 'Incompleta', omitida: 'Omitida' };
 const STATUS_TONE: Record<SessionStatus, 'green' | 'amber' | 'gray' | 'blue'> = { 'en-curso': 'blue', completada: 'green', incompleta: 'amber', omitida: 'gray' };
-const SKIP_REASONS = ['Dolor o molestia', 'Rodilla inestable', 'Falta de aire', 'Indicación del entrenador', 'Máquina ocupada', 'Falta de tiempo', 'Otro'];
+const SKIP_REASONS = ['Dolor o molestia', 'Falta de aire', 'Pesadez o dolor en las piernas', 'Máquina ocupada', 'Falta de tiempo', 'Indicación del entrenador', 'Otro'];
+const KIND_LABEL: Record<Prescription['kind'], string> = { calibracion: 'Calibración', subir: '↑ Subís carga', repetir: 'Mantener', 'mas-reps': '+1 repetición', bajar: '↓ Bajamos', descarga: 'Descarga' };
 
 export function Train() {
   const { date } = useNav();
   const data = useLive(async () => {
-    const [sessions, templates, settings, programStart, exStates, days, allSessions] = await Promise.all([
-      byDate('sessions', date), getTemplates(), getSettings(), kvGet<string>('programStart'), all('exState'), all('days'), all('sessions'),
+    const [sessions, templates, settings, programStart, days, allSessions] = await Promise.all([
+      byDate('sessions', date), getTemplates(), getSettings(), kvGet<string>('programStart'), all('days'), all('sessions'),
     ]);
-    return { sessions: sessions.sort((a, b) => b.startedAt - a.startedAt), templates, settings, programStart, exStates, days, allSessions };
+    return { sessions: sessions.sort((a, b) => b.startedAt - a.startedAt), templates, settings, programStart, days, allSessions };
   }, [date]);
   const [viewId, setViewId] = useState<string | null>(null);
   if (!data) return null;
@@ -48,9 +49,20 @@ export function Train() {
   );
 }
 
-type Data = { templates: DayTemplate[]; settings: Awaited<ReturnType<typeof getSettings>>; programStart?: string; exStates: ExerciseState[]; days: DayLog[]; allSessions: WorkoutSession[]; sessions: WorkoutSession[] };
+type Data = { templates: DayTemplate[]; settings: Awaited<ReturnType<typeof getSettings>>; programStart?: string; days: DayLog[]; allSessions: WorkoutSession[]; sessions: WorkoutSession[] };
 
-function StartPanel({ templates, settings, programStart, sessions, date, onOpen, allSessions }: Data & { date: string; onOpen: (id: string) => void }) {
+export function rxSummary(t: Prescription | null | undefined, perSide?: boolean) {
+  if (!t) return '';
+  const reps = `${t.reps}${perSide ? ' por lado' : ''}`;
+  return `${t.sets} × ${reps}${t.kg != null ? ` · ${fmtKg(t.kg)} kg` : ' · peso a calibrar'} · RIR ${t.rir}`;
+}
+
+function dayContext(days: DayLog[], date: string): DayContext {
+  const d = days.find((x) => x.date === date);
+  return { recoveryFeel: d?.recoveryFeel, sleepHours: d?.sleepHours, pain: d?.pain };
+}
+
+function StartPanel({ templates, programStart, sessions, date, onOpen, allSessions, days }: Data & { date: string; onOpen: (id: string) => void }) {
   const confirm = useConfirm();
   const toast = useToast();
   const def = templateForDate(templates, date);
@@ -58,26 +70,29 @@ function StartPanel({ templates, settings, programStart, sessions, date, onOpen,
   useEffect(() => { setTplId(def?.id ?? templates[0].id); }, [date, def?.id, templates]);
   const tpl = templates.find((t) => t.id === tplId)!;
   const week = programWeek(programStart, date);
-  const [adaptation, setAdaptation] = useState(week <= settings.adaptationWeeks);
+  const block = blockForWeek(week);
   const [reduced, setReduced] = useState(false);
   const [omitOpen, setOmitOpen] = useState(false);
   const [omitReason, setOmitReason] = useState('Descanso');
-  const lastSame = allSessions.filter((s) => s.templateId === tpl.id && s.status !== 'omitida' && s.date < date).sort((a, b) => b.date.localeCompare(a.date))[0];
+  const previous = allSessions.filter((s) => s.date < date || s.status !== 'en-curso');
+  const preview = useMemo(() => newSession(tpl, date, { week, reducedSets: reduced, history: previous, dayContext: dayContext(days, date) }), [tpl, date, week, reduced, previous, days]);
+  const totalSets = preview.exercises.reduce((a, e) => a + e.plannedSets, 0);
+  const minutes = Math.round(preview.exercises.reduce((a, e) => a + e.plannedSets * ((e.target?.restSec ?? 90) + 45), 0) / 60 + 8);
 
   const start = async () => {
-    const s = newSession(tpl, date, { adaptation, reducedSets: reduced });
+    const s = newSession(tpl, date, { week, reducedSets: reduced, history: previous, dayContext: dayContext(days, date) });
     await put('sessions', s);
     onOpen(s.id);
   };
   const omit = async () => {
-    const s: WorkoutSession = { ...newSession(tpl, date, { adaptation: false, reducedSets: false }), status: 'omitida', omitReason, finishedAt: Date.now() };
+    const s: WorkoutSession = { ...newSession(tpl, date, { week }), status: 'omitida', omitReason, finishedAt: Date.now() };
     await put('sessions', s);
     if (omitReason === 'Descanso' || omitReason === 'Enfermedad' || omitReason === 'Dolor') await patchDay(date, { recovery: true, recoveryReason: omitReason });
     setOmitOpen(false);
   };
   const markNoDetail = async () => {
-    if (!(await confirm({ title: 'Marcar como hecho sin series', body: 'Se guarda que entrenaste, sin cargas ni repeticiones. No se usa para sugerir progresión.', ok: 'Marcar hecho' }))) return;
-    const s: WorkoutSession = { ...newSession(tpl, date, { adaptation: false, reducedSets: false }), status: 'completada', noDetail: true, finishedAt: Date.now() };
+    if (!(await confirm({ title: 'Marcar como hecho sin series', body: 'Se guarda que entrenaste, sin cargas ni repeticiones. Sin datos, la app no puede calcular tus kilos de la próxima sesión.', ok: 'Marcar hecho' }))) return;
+    const s: WorkoutSession = { ...newSession(tpl, date, { week }), status: 'completada', noDetail: true, finishedAt: Date.now() };
     await put('sessions', s);
     toast('Entrenamiento marcado como hecho');
   };
@@ -85,19 +100,18 @@ function StartPanel({ templates, settings, programStart, sessions, date, onOpen,
   return (
     <>
       <section className="card hero stack">
-        <p className="eyebrow">{formatLong(date)} · semana {week}</p>
-        <h1 className="h1">{def ? `${tpl.name}` : 'Sin gimnasio programado'}</h1>
-        {!def && <p className="muted small">Hoy no hay sesión en la plantilla (lunes a viernes). Si querés entrenar igual, elegí una.</p>}
+        <div className="row between"><p className="eyebrow">{formatLong(date)}</p><Chip tone="green">Semana {Math.min(week, PROGRAM_WEEKS)} de {PROGRAM_WEEKS}</Chip></div>
+        <h1 className="h1">{def ? tpl.name : 'Sin gimnasio programado'}</h1>
+        <p className="muted small">Bloque {block.n}: {block.name}{isDeloadWeek(week) ? ' · semana de descarga' : ''} · {preview.exercises.length} ejercicios · {totalSets} series · ≈ {minutes} min</p>
+        {!def && <p className="muted small">Hoy no hay sesión en el programa (lunes a viernes). Si querés entrenar igual, elegí una.</p>}
         <Field label="Sesión">
           <select value={tplId} onChange={(e) => setTplId(e.target.value)}>
             {templates.map((t) => <option key={t.id} value={t.id}>{['Dom', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sáb'][t.weekday]} — {t.name}</option>)}
           </select>
         </Field>
-        <div className="note small" role="note"><b>Antes de empezar.</b> {PRECHECK_TEXT}</div>
-        <label className="switch"><input type="checkbox" checked={adaptation} onChange={(e) => setAdaptation(e.target.checked)} /><span>Modo adaptación: 2 series por ejercicio{week <= settings.adaptationWeeks ? ' (sugerido en la primera semana)' : ''}</span></label>
-        <label className="switch"><input type="checkbox" checked={reduced} onChange={(e) => setReduced(e.target.checked)} /><span>Reducir una serie por ejercicio hoy</span></label>
-        <label className="switch"><input type="checkbox" checked={settings.repeatWeek} onChange={(e) => patchSettings({ repeatWeek: e.target.checked })} /><span>Repetir semana (mantener cargas, sin sugerencias de subir)</span></label>
-        <button className="btn primary block lg" onClick={start}>Empezar sesión</button>
+        <div className="note small" role="note">{PRECHECK_TEXT}</div>
+        <label className="switch"><input type="checkbox" checked={reduced} onChange={(e) => setReduced(e.target.checked)} /><span>Hoy estoy cansado: una serie menos por ejercicio</span></label>
+        <button className="btn primary block lg" onClick={start}>Empezar entrenamiento</button>
         <div className="row gap wrap">
           <button className="btn secondary grow" onClick={() => setOmitOpen(true)}>Omitir / descanso</button>
           <button className="btn ghost grow" onClick={markNoDetail}>Hecho sin registrar series</button>
@@ -105,20 +119,23 @@ function StartPanel({ templates, settings, programStart, sessions, date, onOpen,
       </section>
 
       <section className="card">
-        <h2 className="h2">Ejercicios de {tpl.name}</h2>
-        <ol className="exlist">
-          {tpl.exercises.map((e) => (
-            <li key={e.id}>
-              <div>
-                <b>{e.name}</b> <span className="muted">{e.sets}×{e.repMin === e.repMax ? e.repMin : `${e.repMin}–${e.repMax}`}{e.perSide ? ' por lado' : ''}</span>
-                {e.caution && <div className="small warn-text">⚠ {e.caution}</div>}
-              </div>
-            </li>
-          ))}
+        <h2 className="h2">Lo que te toca hoy</h2>
+        <ol className="rxlist">
+          {preview.exercises.map((e, i) => {
+            const t = tpl.exercises.find((x) => x.id === e.exerciseId)!;
+            return (
+              <li key={e.exerciseId}>
+                <span className="ex-num" aria-hidden="true">{i + 1}</span>
+                <div className="grow" style={{ minWidth: 0 }}>
+                  <div className="row between gap"><b>{e.name}</b><a className="yt" href={videoUrl(t.video)} target="_blank" rel="noopener noreferrer" aria-label={`Ver cómo se hace ${e.name} en YouTube`}>▶ Video</a></div>
+                  <div className="small muted">{t.muscle}</div>
+                  <div className="rx-line">{rxSummary(e.target, t.perSide)} <span className={`rx-kind k-${e.target?.kind}`}>{e.target ? KIND_LABEL[e.target.kind] : ''}</span></div>
+                </div>
+              </li>
+            );
+          })}
         </ol>
-        {lastSame && <p className="small muted">Última vez: {formatShort(lastSame.date)} ({STATUS_LABEL[lastSame.status].toLowerCase()}).</p>}
-        <p className="note small">Esta lista es una vista previa. Para cargar <b>kilos, repeticiones y series</b> de cada ejercicio, tocá <b>Empezar sesión</b>.</p>
-        <button className="btn primary block lg" onClick={start}>Empezar sesión y cargar series</button>
+        <p className="tiny muted">Los kilos salen de tu historial: si completás todas las series en el tope del rango, sin dolor y con margen, la próxima vez la app sube el peso mínimo disponible. Los videos abren una búsqueda en YouTube.</p>
       </section>
 
       {sessions.length > 0 && (
@@ -148,12 +165,27 @@ function StartPanel({ templates, settings, programStart, sessions, date, onOpen,
   );
 }
 
-function SessionView({ session, templates, settings, exStates, days, allSessions, onClose }: Data & { session: WorkoutSession; onClose: () => void }) {
+const exDone = (e: ExerciseLog) => !!e.skipped || doneSets(e).length >= e.plannedSets;
+
+function SessionView({ session, templates, allSessions, onClose }: Data & { session: WorkoutSession; onClose: () => void }) {
   const confirm = useConfirm();
   const tpl = templates.find((t) => t.id === session.templateId);
   const update = (fn: (s: WorkoutSession) => WorkoutSession) => put('sessions', { ...fn(structuredClone(session)), updatedAt: Date.now() });
   const updEx = (i: number, fn: (e: ExerciseLog) => void) => update((s) => { fn(s.exercises[i]); return s; });
-  const dayMap = useMemo(() => new Map(days.map((d) => [d.date, d])), [days]);
+  const currentIdx = session.exercises.findIndex((e) => !exDone(e));
+  const [open, setOpen] = useState<Record<number, boolean>>({});
+  const prevCurrent = useRef(currentIdx);
+  useEffect(() => {
+    // Al terminar un ejercicio, llevar la vista al siguiente.
+    if (currentIdx !== prevCurrent.current && currentIdx >= 0) {
+      setTimeout(() => document.getElementById(`ex-${currentIdx}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350);
+    }
+    prevCurrent.current = currentIdx;
+  }, [currentIdx]);
+  const totalSets = session.exercises.reduce((a, e) => a + (e.skipped ? 0 : e.plannedSets), 0);
+  const done = session.exercises.reduce((a, e) => a + (e.skipped ? 0 : Math.min(doneSets(e).length, e.plannedSets)), 0);
+  const pct = totalSets ? Math.round((done / totalSets) * 100) : 0;
+  const elapsed = Math.round((Date.now() - session.startedAt) / 60000);
 
   const finish = async () => {
     const st = finishStatus(session);
@@ -171,17 +203,18 @@ function SessionView({ session, templates, settings, exStates, days, allSessions
     <>
       <section className="card hero stack">
         <div className="row between">
-          <div>
-            <p className="eyebrow">{formatLong(session.date)}</p>
-            <h1 className="h1">{session.templateName}</h1>
-          </div>
+          <p className="eyebrow">{formatLong(session.date)}{session.week ? ` · semana ${session.week}` : ''}</p>
           <Chip tone={STATUS_TONE[session.status]}>{STATUS_LABEL[session.status]}</Chip>
         </div>
-        <p className="small muted">{session.adaptation ? 'Modo adaptación · ' : ''}{session.reducedSets ? 'Series reducidas · ' : ''}Dejá normalmente 2–3 repeticiones en reserva (RIR). Las entradas en calor no cuentan como series efectivas.</p>
-        <div className="note small"><b>Chequeo previo.</b> {PRECHECK_TEXT}</div>
+        <h1 className="h1">{session.templateName}</h1>
+        <div className="session-progress" aria-label={`Progreso: ${done} de ${totalSets} series`}>
+          <div className="row between small"><span><b>{done}</b> de {totalSets} series{currentIdx >= 0 ? ` · ejercicio ${currentIdx + 1} de ${session.exercises.length}` : ' · ¡todo hecho!'}</span><span>{session.status === 'en-curso' ? `${elapsed} min` : ''}</span></div>
+          <div className="bar"><i style={{ width: `${pct}%` }} /></div>
+        </div>
+        {session.blockName && <p className="small muted">Bloque: {session.blockName}{session.deload ? ' · descarga' : ''}. Dejá las repeticiones en reserva que indica cada ejercicio: no hace falta llegar al fallo.</p>}
         <div className="row gap wrap">
-          <label className="switch"><input type="checkbox" checked={session.preCheck?.knee === true} onChange={(e) => update((s) => ({ ...s, preCheck: { knee: e.target.checked, breathing: s.preCheck?.breathing ?? null } }))} /><span>Rodilla estable y sin dolor</span></label>
           <label className="switch"><input type="checkbox" checked={session.preCheck?.breathing === true} onChange={(e) => update((s) => ({ ...s, preCheck: { knee: s.preCheck?.knee ?? null, breathing: e.target.checked } }))} /><span>Respiración como siempre</span></label>
+          <label className="switch"><input type="checkbox" checked={session.preCheck?.knee === true} onChange={(e) => update((s) => ({ ...s, preCheck: { knee: e.target.checked, breathing: s.preCheck?.breathing ?? null } }))} /><span>Piernas sin pesadez ni dolor</span></label>
         </div>
         {session.status !== 'en-curso' && session.status !== 'omitida' && (
           <div className="row gap wrap">
@@ -194,95 +227,103 @@ function SessionView({ session, templates, settings, exStates, days, allSessions
       {session.exercises.map((e, i) => {
         const t = tpl?.exercises.find((x) => x.id === e.exerciseId);
         const hist = exerciseHistory(allSessions, e.exerciseId, e.name, session.id).filter((h) => h.session.date <= session.date);
-        return <ExerciseCard key={e.exerciseId + i} e={e} index={i} t={t} hist={hist} exState={exStates.find((x) => x.exerciseId === e.exerciseId)}
-          settings={settings} dayMap={dayMap} onChange={(fn) => updEx(i, fn)} editable={session.status !== 'omitida'} />;
+        const state = exDone(e) ? 'done' : i === currentIdx ? 'current' : 'next';
+        const expanded = open[i] ?? state === 'current';
+        return <ExerciseCard key={e.exerciseId + i} index={i} e={e} t={t} hist={hist} state={state} expanded={expanded}
+          onToggle={() => setOpen((o) => ({ ...o, [i]: !expanded }))} onChange={(fn) => updEx(i, fn)} editable={session.status !== 'omitida'} />;
       })}
 
       {session.status === 'en-curso' && (
         <section className="card stack">
-          <button className="btn primary block lg" onClick={finish}>Terminar sesión</button>
-          <p className="small muted center">Todo se guarda al instante. Si cerrás la app, la sesión sigue acá.</p>
+          <button className="btn primary block lg" onClick={finish}>Finalizar entrenamiento</button>
+          <p className="small muted center">La sesión solo termina cuando tocás este botón. Todo se guarda al instante: si cerrás la app, sigue acá.</p>
         </section>
       )}
     </>
   );
 }
 
-function ExerciseCard({ e, index, t, hist, exState, settings, dayMap, onChange, editable }: {
-  e: ExerciseLog; index: number; t?: ExerciseTemplate; hist: ReturnType<typeof exerciseHistory>; exState?: ExerciseState;
-  settings: Data['settings']; dayMap: Map<string, DayLog>; onChange: (fn: (e: ExerciseLog) => void) => void; editable: boolean;
+function ExerciseCard({ e, index, t, hist, state, expanded, onToggle, onChange, editable }: {
+  e: ExerciseLog; index: number; t?: ExerciseTemplate; hist: ReturnType<typeof exerciseHistory>; state: 'done' | 'current' | 'next'; expanded: boolean;
+  onToggle: () => void; onChange: (fn: (e: ExerciseLog) => void) => void; editable: boolean;
 }) {
   const [skipOpen, setSkipOpen] = useState(false);
   const [reason, setReason] = useState(SKIP_REASONS[0]);
   const [skipNote, setSkipNote] = useState('');
   const [showHist, setShowHist] = useState(false);
+  const toast = useToast();
   const last = hist[0];
-  const restSec = t?.restSec ?? [60, 90];
+  const rx = e.target;
+  const restSec = rx?.restSec ?? t?.restSec[0] ?? 90;
   const done = doneSets(e).length;
-
-  const suggestion = useMemo(() => {
-    if (!last) return null;
-    const d = dayMap.get(last.session.date);
-    return progressionSuggestion(last.ex, hist[1]?.ex ?? null, { repeatWeek: settings.repeatWeek, dayRecoveryFeel: d?.recoveryFeel, sleepHours: d?.sleepHours, incrementKg: t?.incrementKg ?? 2.5 });
-  }, [last, hist, dayMap, settings.repeatWeek, t?.incrementKg]);
-  const accepted = exState?.targetKg != null;
-  const dismissed = exState?.dismissedFor === last?.session.id;
-
   const startRest = (sec: number) => kvSet('restTimer', { endAt: Date.now() + sec * 1000, label: e.name, total: sec }, true);
+
+  const markSet = (si: number) => {
+    const s = e.sets[si];
+    const nd = !s.done;
+    if (nd && s.kg == null && rx?.kg == null) { toast('Anotá los kg que usaste en esta serie', 'error'); return; }
+    onChange((x) => {
+      const cur = x.sets[si];
+      if (nd) {
+        if (cur.kg == null && rx?.kg != null) cur.kg = rx.kg;
+        if (cur.reps == null && rx) cur.reps = rx.reps;
+        if (cur.rir == null && rx) cur.rir = rx.rir;
+        // las series siguientes vacías toman el peso usado
+        for (let k = si + 1; k < x.sets.length; k++) if (x.sets[k].kg == null && !x.sets[k].done) x.sets[k].kg = cur.kg;
+      }
+      cur.done = nd;
+    });
+    if (nd && si < e.sets.length - 1) startRest(restSec);
+    if (nd && si === e.sets.length - 1) toast(`✓ ${e.name} terminado`);
+  };
+
+  const head = (
+    <div className="ex-head" onClick={state !== 'current' || !expanded ? onToggle : undefined} role={state !== 'current' ? 'button' : undefined} aria-expanded={expanded}>
+      <span className="ex-num" aria-hidden="true">{state === 'done' ? '✓' : index + 1}</span>
+      <div className="grow" style={{ minWidth: 0 }}>
+        <div className="row between gap">
+          <h3 className="h3">{e.name}</h3>
+          <Chip tone={e.skipped ? 'gray' : done >= e.plannedSets ? 'green' : 'neutral'}>{e.skipped ? 'Omitido' : `${done}/${e.plannedSets}`}</Chip>
+        </div>
+        <div className="small muted">{state === 'done' && !e.skipped ? describeSets(e) : `${t?.muscle ?? ''}${rx ? ` · ${rxSummary(rx, t?.perSide)}` : ''}`}</div>
+        {!e.skipped && <div className="ex-progress" aria-hidden="true"><i style={{ width: `${Math.min(100, (done / Math.max(1, e.plannedSets)) * 100)}%` }} /></div>}
+      </div>
+    </div>
+  );
+
+  if (!expanded) return <section id={`ex-${index}`} className={`card exercise collapsed s-${state}`}>{head}</section>;
 
   if (e.skipped) {
     return (
-      <section className="card exercise skipped">
-        <div className="row between"><h3 className="h3">{e.name}</h3><Chip tone="gray">Omitido</Chip></div>
+      <section id={`ex-${index}`} className="card exercise skipped">
+        {head}
         <p className="small">Motivo: {e.skipped.reason}{e.skipped.note ? ` — ${e.skipped.note}` : ''}</p>
         {editable && <button className="btn ghost small" onClick={() => onChange((x) => { x.skipped = null; })}>Deshacer omisión</button>}
       </section>
     );
   }
 
+  const warm = rx?.kg != null && t?.main ? [Math.round(rx.kg * 0.5), Math.round(rx.kg * 0.75)] : null;
   return (
-    <section className="card exercise">
-      <div className="ex-head">
-        <span className="ex-num" aria-hidden="true">{index + 1}</span>
-        <div className="grow" style={{ minWidth: 0 }}>
-          <div className="row between">
-            <h3 className="h3">{e.name}</h3>
-            <Chip tone={done >= e.plannedSets ? 'green' : 'neutral'}>{done}/{e.plannedSets} {done >= e.plannedSets ? '✓' : ''}</Chip>
-          </div>
-          <div className="ex-progress" aria-hidden="true"><i style={{ width: `${Math.min(100, (done / Math.max(1, e.plannedSets)) * 100)}%` }} /></div>
+    <section id={`ex-${index}`} className={`card exercise s-${state}`}>
+      {head}
+      {t && <a className="btn ghost small yt-btn" href={videoUrl(t.video)} target="_blank" rel="noopener noreferrer">▶ Ver cómo se hace (YouTube)</a>}
+
+      {rx && (
+        <div className={`rx-box k-${rx.kind}`}>
+          <div className="row between gap"><b>Hoy: {rxSummary(rx, t?.perSide)}</b><span className="rx-kind">{KIND_LABEL[rx.kind]}</span></div>
+          <p className="small">{rx.note}</p>
+          <p className="tiny muted">Descanso entre series: {fmtRest([restSec, restSec])} · rango del ejercicio {rx.repMin}–{rx.repMax} reps</p>
         </div>
-      </div>
-      <p className="small muted">{e.plannedSets} series × {e.repMin === e.repMax ? e.repMin : `${e.repMin}–${e.repMax}`} reps{t?.perSide ? ' por lado' : ''} · descanso {fmtRest(restSec)}{t?.main ? ' · principal' : ''}</p>
+      )}
       {t?.caution && <p className="small warn-text">⚠ {t.caution}</p>}
-
       <div className="lasttime">
-        {last ? <><b>La última vez</b> ({formatShort(last.session.date)}): {describeSets(last.ex)}{last.ex.pain > 0 ? ` · molestia ${last.ex.pain}/10` : ''}</> : <span className="muted">Primera vez que registrás este ejercicio. Elegí una carga que te deje 2–3 repeticiones en reserva.</span>}
+        {last ? <><b>La última vez</b> ({formatShort(last.session.date)}): {describeSets(last.ex)}{last.ex.pain > 0 ? ` · molestia ${last.ex.pain}/10` : ''}</> : <span className="muted">Primera vez con este ejercicio.</span>}
       </div>
 
-      {accepted && (
-        <div className="suggest accepted row between">
-          <span>Objetivo aceptado: <b>{fmtKg(exState!.targetKg!)} kg</b></span>
-          <span className="row gap">
-            {editable && <button className="btn secondary small" onClick={() => onChange((x) => { x.sets.forEach((s) => { if (s.kg == null) s.kg = exState!.targetKg!; }); })}>Usar</button>}
-            <button className="btn ghost small" onClick={() => put('exState', { exerciseId: e.exerciseId, targetKg: null, dismissedFor: last?.session.id ?? null })}>Quitar</button>
-          </span>
-        </div>
-      )}
-      {!accepted && suggestion?.suggest && !dismissed && (
-        <div className="suggest">
-          <p><b>Sugerencia:</b> probar <b>{fmtKg(suggestion.newKg!)} kg</b> (el mínimo disponible). {suggestion.reasons[0]}</p>
-          <p className="small muted">Solo si hoy te sentís bien y sin dolor. No cambia nada hasta que aceptes.</p>
-          <div className="row gap">
-            <button className="btn primary small" onClick={() => put('exState', { exerciseId: e.exerciseId, targetKg: suggestion.newKg, acceptedAt: Date.now(), dismissedFor: null })}>Aceptar</button>
-            <button className="btn ghost small" onClick={() => put('exState', { exerciseId: e.exerciseId, targetKg: null, dismissedFor: last!.session.id })}>Mantener carga</button>
-          </div>
-        </div>
-      )}
-      {!accepted && suggestion && !suggestion.suggest && last && <p className="small muted">Progresión: {suggestion.reasons[0]}</p>}
-
-      {/* Entrada en calor */}
       <div className="sets">
         <p className="sets-title">Entrada en calor <span className="muted small">(no cuenta)</span></p>
+        {warm && <p className="small muted">Sugerido: 1 × 10 con ~{warm[0]} kg y 1 × 5 con ~{warm[1]} kg.</p>}
         {e.warmups.map((w, wi) => (
           <div className="setrow warm" key={'w' + wi}>
             <span className="setn">C{wi + 1}</span>
@@ -294,29 +335,31 @@ function ExerciseCard({ e, index, t, hist, exState, settings, dayMap, onChange, 
         {editable && <button className="btn ghost small" onClick={() => onChange((x) => { x.warmups.push({ kg: null, reps: null }); })}>+ Serie de calentamiento</button>}
       </div>
 
-      {/* Series efectivas */}
       <div className="sets">
         <p className="sets-title">Series efectivas</p>
         <div className="setrow head" aria-hidden="true"><span className="setn">#</span><span>kg</span><span>reps</span><span>RIR</span><span>Hecha</span></div>
-        {e.sets.map((s, si) => (
-          <div className={`setrow ${s.done ? 'is-done' : ''}`} key={si}>
-            <span className="setn">{si + 1}</span>
-            <NumInput className="kg" label={`Serie ${si + 1} kg`} placeholder={exState?.targetKg != null ? fmtKg(exState.targetKg) : 'kg'} value={s.kg} onCommit={(v) => onChange((x) => { x.sets[si].kg = v; })} />
-            <NumInput className="reps" label={`Serie ${si + 1} repeticiones`} placeholder={`${e.repMin}–${e.repMax}`} integer max={100} value={s.reps} onCommit={(v) => onChange((x) => { x.sets[si].reps = v; })} />
-            <select aria-label={`Serie ${si + 1} repeticiones en reserva`} value={s.rir ?? ''} onChange={(ev) => onChange((x) => { x.sets[si].rir = ev.target.value === '' ? null : Number(ev.target.value); })}>
-              <option value="">–</option>{[0, 1, 2, 3, 4, 5].map((r) => <option key={r} value={r}>{r}{r === 5 ? '+' : ''}</option>)}
-            </select>
-            <button className={`btn small setdone ${s.done ? 'primary' : 'secondary'}`} aria-pressed={s.done} aria-label={`Serie ${si + 1} ${s.done ? 'hecha' : 'marcar hecha'}`}
-              onClick={() => { const nd = !s.done; onChange((x) => { x.sets[si].done = nd; if (nd && x.sets[si].reps == null) x.sets[si].reps = null; }); if (nd) startRest(restSec[0]); }}>
-              {s.done ? '✓' : 'Hecha'}
-            </button>
-          </div>
-        ))}
+        {e.sets.map((s, si) => {
+          const isNext = !s.done && e.sets.findIndex((x) => !x.done) === si;
+          return (
+            <div className={`setrow ${s.done ? 'is-done' : ''} ${isNext ? 'is-next' : ''}`} key={si}>
+              <span className="setn">{si + 1}</span>
+              <NumInput className="kg" label={`Serie ${si + 1} kg`} placeholder={rx?.kg != null ? fmtKg(rx.kg) : 'kg'} value={s.kg} onCommit={(v) => onChange((x) => { x.sets[si].kg = v; })} />
+              <NumInput className="reps" label={`Serie ${si + 1} repeticiones`} placeholder={rx ? String(rx.reps) : `${e.repMin}–${e.repMax}`} integer max={100} value={s.reps} onCommit={(v) => onChange((x) => { x.sets[si].reps = v; })} />
+              <select aria-label={`Serie ${si + 1} repeticiones en reserva`} value={s.rir ?? ''} onChange={(ev) => onChange((x) => { x.sets[si].rir = ev.target.value === '' ? null : Number(ev.target.value); })}>
+                <option value="">{rx ? `${rx.rir}` : '–'}</option>{[0, 1, 2, 3, 4, 5].map((r) => <option key={r} value={r}>{r}{r === 5 ? '+' : ''}</option>)}
+              </select>
+              <button className={`btn small setdone ${s.done ? 'primary' : 'secondary'}`} aria-pressed={s.done} aria-label={`Serie ${si + 1} ${s.done ? 'hecha' : 'marcar hecha'}`} onClick={() => markSet(si)}>
+                {s.done ? '✓' : 'Hecha'}
+              </button>
+            </div>
+          );
+        })}
+        <p className="tiny muted">"Hecha" completa los casilleros vacíos con lo indicado. Si hiciste otra cosa, cambiá los números.</p>
         {editable && (
-          <div className="row gap">
-            <button className="btn ghost small" onClick={() => onChange((x) => { x.sets.push({ kg: x.sets.at(-1)?.kg ?? null, reps: null, rir: null, done: false }); })}>+ Serie</button>
+          <div className="row gap wrap">
+            <button className="btn ghost small" onClick={() => onChange((x) => { x.sets.push({ kg: x.sets.at(-1)?.kg ?? null, reps: null, rir: null, done: false }); x.plannedSets = Math.max(x.plannedSets, x.sets.length); })}>+ Serie</button>
             {e.sets.length > 1 && <button className="btn ghost small" onClick={() => onChange((x) => { x.sets.pop(); x.plannedSets = Math.min(x.plannedSets, x.sets.length); })}>− Serie</button>}
-            <button className="btn ghost small" onClick={() => startRest(restSec[0])}>⏱ Descanso {fmtRest([restSec[0], restSec[0]])}</button>
+            <button className="btn ghost small" onClick={() => startRest(restSec)}>⏱ Descanso {fmtRest([restSec, restSec])}</button>
           </div>
         )}
       </div>
@@ -329,14 +372,14 @@ function ExerciseCard({ e, index, t, hist, exState, settings, dayMap, onChange, 
         </Field>
         <Field label="Técnica">
           <select value={e.techniqueOk == null ? '' : e.techniqueOk ? 'si' : 'no'} onChange={(ev) => onChange((x) => { x.techniqueOk = ev.target.value === '' ? null : ev.target.value === 'si'; })}>
-            <option value="">Sin evaluar</option><option value="si">Buena</option><option value="no">Con dudas</option>
+            <option value="">Bien (por defecto)</option><option value="si">Muy buena</option><option value="no">Con dudas: no subir</option>
           </select>
         </Field>
       </div>
       {e.pain > 0 && (
         <>
           <Field label="¿Dónde?"><input defaultValue={e.painLocation ?? ''} onBlur={(ev) => onChange((x) => { x.painLocation = ev.target.value; })} placeholder="Ej.: rodilla derecha, muñeca" /></Field>
-          <p className="note small">Con dolor, no subas carga. Podés omitir el ejercicio y registrar el motivo; no se reemplaza automáticamente por otro que cargue la misma articulación.</p>
+          <p className="note small">Con dolor, la próxima sesión la app no sube carga (y con 4/10 o más la baja un 10 %). Podés omitir el ejercicio y anotar el motivo.</p>
         </>
       )}
       <Field label="Notas"><textarea rows={2} defaultValue={e.notes ?? ''} onBlur={(ev) => ev.target.value !== (e.notes ?? '') && onChange((x) => { x.notes = ev.target.value; })} /></Field>
@@ -344,6 +387,7 @@ function ExerciseCard({ e, index, t, hist, exState, settings, dayMap, onChange, 
       <details className="howto">
         <summary>Cómo hacerlo · errores comunes · alternativa</summary>
         {t ? <>
+          <p><b>Músculo:</b> {t.muscle}</p>
           <p><b>Cómo:</b> {t.how}</p>
           <p><b>Errores comunes:</b> {t.errors}</p>
           <p><b>Alternativa:</b> {t.alternative} <span className="muted small">(editable en Ajustes › Plantillas)</span></p>
@@ -353,6 +397,7 @@ function ExerciseCard({ e, index, t, hist, exState, settings, dayMap, onChange, 
       <div className="row gap wrap">
         {editable && <button className="btn ghost small" onClick={() => setSkipOpen(true)}>Omitir ejercicio</button>}
         {hist.length > 0 && <button className="btn ghost small" onClick={() => setShowHist(!showHist)}>{showHist ? 'Ocultar historial' : `Historial (${hist.length})`}</button>}
+        {state === 'done' && <button className="btn ghost small" onClick={onToggle}>Cerrar</button>}
       </div>
       {showHist && (
         <ul className="list small">

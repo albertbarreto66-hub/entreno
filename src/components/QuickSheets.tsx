@@ -126,43 +126,47 @@ export function StepsSheet({ open, onClose, s }: { open: boolean; onClose: () =>
 
 // ---------------- Peso y cintura ----------------
 export function WeightSheet({ open, onClose, date }: { open: boolean; onClose: () => void; date: string }) {
-  const [w, setW] = useState('');
-  const [c, setC] = useState('');
-  const [note, setNote] = useState('');
+  const [v, setV] = useState({ w: '', c: '', ch: '', b: '', note: '' });
   const confirm = useConfirm();
   const toast = useToast();
-  useEffect(() => { if (open) { setW(''); setC(''); setNote(''); } }, [open]);
+  useEffect(() => { if (open) setV({ w: '', c: '', ch: '', b: '', note: '' }); }, [open]);
+  const set = (k: keyof typeof v) => (e: { target: { value: string } }) => setV((x) => ({ ...x, [k]: e.target.value }));
   const save = async () => {
-    const kg = w ? parseNum(w) : null;
-    const cm = c ? parseNum(c) : null;
-    if (kg == null && cm == null) { toast('Cargá peso o cintura.', 'error'); return; }
-    if ((kg != null && (kg < 30 || kg > 300)) || (cm != null && (cm < 40 || cm > 250))) { toast('Revisá los valores (kg o cm).', 'error'); return; }
-    const existing = (await byDate('body', date)).filter((b) => (kg != null && b.weightKg != null) || (cm != null && b.waistCm != null));
+    const kg = v.w ? parseNum(v.w) : null, cm = v.c ? parseNum(v.c) : null, chest = v.ch ? parseNum(v.ch) : null, biceps = v.b ? parseNum(v.b) : null;
+    if (kg == null && cm == null && chest == null && biceps == null) { toast('Cargá al menos una medida.', 'error'); return; }
+    const bad = (x: number | null, lo: number, hi: number) => x != null && (x < lo || x > hi);
+    if (bad(kg, 30, 300) || bad(cm, 40, 250) || bad(chest, 50, 250) || bad(biceps, 15, 80)) { toast('Revisá los valores (kg o cm).', 'error'); return; }
+    const rec = { weightKg: kg, waistCm: cm, chestCm: chest, bicepsCm: biceps };
+    const existing = (await byDate('body', date)).filter((b) => (kg != null && b.weightKg != null) || (cm != null && b.waistCm != null) || (chest != null && b.chestCm != null) || (biceps != null && b.bicepsCm != null));
     if (existing.length) {
       const e = existing[existing.length - 1];
       const r = await confirm({
         title: 'Ya hay una medición este día',
-        body: `${e.weightKg != null ? n1(e.weightKg) + ' kg' : ''} ${e.waistCm != null ? n1(e.waistCm) + ' cm' : ''}. ¿Reemplazarla o agregar otra?`,
+        body: `${[e.weightKg != null && `${n1(e.weightKg)} kg`, e.waistCm != null && `abdomen ${n1(e.waistCm)} cm`, e.chestCm != null && `pecho ${n1(e.chestCm)} cm`, e.bicepsCm != null && `bíceps ${n1(e.bicepsCm)} cm`].filter(Boolean).join(' · ')}. ¿Reemplazarla o agregar otra?`,
         ok: 'Reemplazar', extra: [{ label: 'Agregar otra', value: 'add' }],
       });
       if (!r) return;
       if (r === 'ok') {
-        await put('body', { ...e, weightKg: kg ?? e.weightKg, waistCm: cm ?? e.waistCm, note: note || e.note, at: Date.now() });
+        await put('body', { ...e, weightKg: kg ?? e.weightKg, waistCm: cm ?? e.waistCm, chestCm: chest ?? e.chestCm, bicepsCm: biceps ?? e.bicepsCm, note: v.note || e.note, at: Date.now() });
         onClose(); return;
       }
     }
-    await put('body', { id: uid(), date, weightKg: kg, waistCm: cm, note, at: Date.now() });
+    await put('body', { id: uid(), date, ...rec, note: v.note, at: Date.now() });
     onClose();
   };
   return (
-    <Sheet open={open} onClose={onClose} title="Peso y cintura">
+    <Sheet open={open} onClose={onClose} title="Peso y medidas">
       <div className="row gap">
-        <Field label="Peso (kg)"><input inputMode="decimal" placeholder="Ej.: 108,4" value={w} onChange={(e) => setW(e.target.value)} /></Field>
-        <Field label="Cintura (cm)"><input inputMode="decimal" placeholder="Ej.: 104" value={c} onChange={(e) => setC(e.target.value)} /></Field>
+        <Field label="Peso (kg)"><input inputMode="decimal" placeholder="Ej.: 108,4" value={v.w} onChange={set('w')} /></Field>
+        <Field label="Abdomen (cm)" hint="A la altura del ombligo, sin meter la panza."><input inputMode="decimal" placeholder="Ej.: 118" value={v.c} onChange={set('c')} /></Field>
       </div>
-      <Field label="Nota (opcional)"><input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ej.: en ayunas, después de ir al baño" /></Field>
+      <div className="row gap">
+        <Field label="Pecho (cm)" hint="A la altura de las tetillas, brazos relajados, al final de exhalar."><input inputMode="decimal" placeholder="Ej.: 110" value={v.ch} onChange={set('ch')} /></Field>
+        <Field label="Bíceps (cm)" hint="Flexionado, en la parte más ancha, mismo brazo siempre."><input inputMode="decimal" placeholder="Ej.: 41" value={v.b} onChange={set('b')} /></Field>
+      </div>
+      <Field label="Nota (opcional)"><input value={v.note} onChange={set('note')} placeholder="Ej.: en ayunas, después de ir al baño" /></Field>
       <button className="btn primary block" onClick={save}>Guardar</button>
-      <p className="small muted">Conviene medir en condiciones parecidas (misma hora, antes de comer). Un día aislado varía por agua, sal y digestión: mirá el promedio semanal en Progreso.</p>
+      <p className="small muted">Peso: idealmente todos los días o 3–4 veces por semana, en ayunas y después del baño. Medidas: una vez por semana, mismo día y hora. Un día aislado varía por agua, sal y digestión: lo que cuenta es el promedio semanal.</p>
     </Sheet>
   );
 }

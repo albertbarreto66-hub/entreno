@@ -5,7 +5,7 @@ import { Chip, Field, Segmented, useConfirm, useToast } from '../components/ui';
 import { DEFAULT_TEMPLATES } from '../data/templates';
 import { DEFAULT_SCHEDULE, STEP_GOAL_MAX } from '../data/profile';
 import { getProfile, getSchedule, getSettings, patchSettings } from '../lib/app';
-import { applyBackup, backupFileName, currentCounts, exportBackup, parseBackup, wipeAll, type ParsedBackup } from '../lib/backup';
+import { applyBackup, backupFileName, currentCounts, exportBackup, isProfileOnly, mergeProfile, parseBackup, wipeAll, type ParsedBackup } from '../lib/backup';
 import { formatDateTime, formatShort } from '../lib/dates';
 import { all, kvGet, kvSet } from '../lib/db';
 import { saveFile } from '../lib/files';
@@ -60,6 +60,11 @@ function ProfileSection() {
         <Field label="Altura (cm)"><NumInput label="Altura" value={d.heightCm} max={250} onCommit={(v) => save({ heightCm: v })} /></Field>
         <Field label="Último peso informado (kg)" hint="Dato inicial pendiente de actualizar."><NumInput label="Peso inicial" value={d.initialWeightKg} max={300} onCommit={(v) => save({ initialWeightKg: v })} /></Field>
       </div>
+      <Field label="Sexo (para el cálculo de calorías)">
+        <select value={d.sex ?? ''} onChange={(e) => save({ sex: (e.target.value || null) as Profile['sex'] })}>
+          <option value="">Sin indicar</option><option value="masculino">Masculino</option><option value="femenino">Femenino</option>
+        </select>
+      </Field>
       <Field label="Zona horaria"><input value={d.timezone} readOnly aria-readonly="true" /></Field>
       {txt('work', 'Trabajo y actividad')}
       {txt('goals', 'Objetivos')}
@@ -214,7 +219,7 @@ function TemplatesSection() {
         </details>
       ))}
       <div className="row gap wrap">
-        <button className="btn ghost small" onClick={() => save(tpls.map((d) => (d.id === sel ? { ...d, exercises: [...d.exercises, { id: `${sel}-${uid().slice(0, 8)}`, name: 'Nuevo ejercicio', alternative: '', sets: 2, repMin: 10, repMax: 12, restSec: [60, 90], main: false, how: '', errors: '', incrementKg: 1 }] } : d)))}>+ Agregar ejercicio</button>
+        <button className="btn ghost small" onClick={() => save(tpls.map((d) => (d.id === sel ? { ...d, exercises: [...d.exercises, { id: `${sel}-${uid().slice(0, 8)}`, name: 'Nuevo ejercicio', alternative: '', sets: 2, repMin: 10, repMax: 12, restSec: [60, 90], main: false, how: '', errors: '', incrementKg: 1, muscle: '', video: 'ejercicio de gimnasio técnica' }] } : d)))}>+ Agregar ejercicio</button>
         <button className="btn ghost small" onClick={async () => { if (await confirm({ title: 'Restaurar las plantillas iniciales?', body: 'Se pierden los cambios hechos a las plantillas (no el historial).', ok: 'Restaurar', danger: true })) save(DEFAULT_TEMPLATES); }}>Restaurar plantillas</button>
       </div>
     </section>
@@ -273,6 +278,7 @@ function BackupSection() {
             <tbody>{Object.keys(LABELS).map((k) => <tr key={k}><td>{LABELS[k]}</td><td>{parsed.preview.counts[k] ?? 0}</td><td>{counts[k] ?? 0}</td></tr>)}</tbody>
           </table>
           <div className="row gap">
+            {isProfileOnly(parsed) && <button className="btn primary grow" disabled={busy} onClick={async () => { await mergeProfile(parsed); toast('Perfil y medidas cargados, sin borrar tus registros'); setParsed(null); }}>Cargar perfil y medidas (sin borrar nada)</button>}
             <button className="btn danger grow" onClick={restore} disabled={busy}>Reemplazar mis datos con este respaldo</button>
             <button className="btn ghost" onClick={() => setParsed(null)}>Cancelar</button>
           </div>

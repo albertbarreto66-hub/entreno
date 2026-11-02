@@ -2,45 +2,50 @@ import { FOOD_BY_ID, FOODS, type Food } from '../data/foods';
 import { MENU, type MenuMeal } from '../data/menu';
 import type { FoodItem, MealLog } from './types';
 
-export interface Totals { kcal: number; protein: number; unknown: number }
+export interface Totals { kcal: number; protein: number; carbs: number; fat: number; fiber: number; unknown: number }
+const ZERO: Totals = { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, unknown: 0 };
 
 export function itemTotals(it: FoodItem): Totals {
   const f = FOOD_BY_ID[it.foodId];
-  if (!f || !(it.grams >= 0)) return { kcal: 0, protein: 0, unknown: 1 };
-  return { kcal: (f.kcal * it.grams) / 100, protein: (f.protein * it.grams) / 100, unknown: 0 };
+  if (!f || !(it.grams >= 0)) return { ...ZERO, unknown: 1 };
+  const k = it.grams / 100;
+  return { kcal: f.kcal * k, protein: f.protein * k, carbs: f.carbs * k, fat: f.fat * k, fiber: f.fiber * k, unknown: 0 };
 }
 
 export function sumItems(items: FoodItem[]): Totals {
   return items.reduce<Totals>((a, it) => {
     const t = itemTotals(it);
-    return { kcal: a.kcal + t.kcal, protein: a.protein + t.protein, unknown: a.unknown + t.unknown };
-  }, { kcal: 0, protein: 0, unknown: 0 });
+    return { kcal: a.kcal + t.kcal, protein: a.protein + t.protein, carbs: a.carbs + t.carbs, fat: a.fat + t.fat, fiber: a.fiber + t.fiber, unknown: a.unknown + t.unknown };
+  }, { ...ZERO });
 }
 
 /**
  * Totales de una comida registrada. Si es texto libre sin alimentos del catálogo
  * no se estima nada: solo se usan valores que vos hayas cargado a mano.
  */
-export function mealLogTotals(m: MealLog): { kcal: number | null; protein: number | null; estimated: 'catalogo' | 'manual' | 'sin-datos' } {
+export interface MealTotals { kcal: number | null; protein: number | null; carbs: number | null; fat: number | null; estimated: 'catalogo' | 'manual' | 'sin-datos' }
+export function mealLogTotals(m: MealLog): MealTotals {
   if (m.items.length > 0) {
     const t = sumItems(m.items);
-    return { kcal: t.kcal, protein: t.protein, estimated: 'catalogo' };
+    return { kcal: t.kcal, protein: t.protein, carbs: t.carbs, fat: t.fat, estimated: 'catalogo' };
   }
   if (m.manualKcal != null || m.manualProtein != null) {
-    return { kcal: m.manualKcal ?? null, protein: m.manualProtein ?? null, estimated: 'manual' };
+    return { kcal: m.manualKcal ?? null, protein: m.manualProtein ?? null, carbs: null, fat: null, estimated: 'manual' };
   }
-  return { kcal: null, protein: null, estimated: 'sin-datos' };
+  return { kcal: null, protein: null, carbs: null, fat: null, estimated: 'sin-datos' };
 }
 
 export function dayLogTotals(meals: MealLog[]) {
-  let kcal = 0, protein = 0, withoutData = 0;
+  let kcal = 0, protein = 0, carbs = 0, fat = 0, withoutData = 0;
   for (const m of meals) {
     const t = mealLogTotals(m);
     if (t.kcal == null && t.protein == null) withoutData++;
     kcal += t.kcal ?? 0;
     protein += t.protein ?? 0;
+    carbs += t.carbs ?? 0;
+    fat += t.fat ?? 0;
   }
-  return { kcal, protein, withoutData };
+  return { kcal, protein, carbs, fat, withoutData };
 }
 
 export function mealVariant(meal: MenuMeal, noEgg: boolean) {
@@ -49,7 +54,7 @@ export function mealVariant(meal: MenuMeal, noEgg: boolean) {
 
 export function menuDayTotals(day: number, noEgg = false): Totals {
   const d = MENU.find((m) => m.day === day);
-  if (!d) return { kcal: 0, protein: 0, unknown: 0 };
+  if (!d) return { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, unknown: 0 };
   return sumItems(Object.values(d.meals).flatMap((m) => mealVariant(m, noEgg).items));
 }
 
@@ -65,7 +70,7 @@ export function menuDayForWeekday(wd: number) { return wd === 0 ? 7 : wd; }
 export function substitutes(it: FoodItem, opts: { dairy: boolean }): { food: Food; grams: number }[] {
   const f = FOOD_BY_ID[it.foodId];
   if (!f) return [];
-  return FOODS.filter((o) => o.id !== f.id && o.group === f.group && (opts.dairy || !o.dairy) && !o.egg)
+  return FOODS.filter((o) => o.id !== f.id && o.group === f.group && (opts.dairy || !o.dairy) && !o.egg && (o.state !== 'polvo') === (f.state !== 'polvo'))
     .map((o) => {
       let grams: number;
       if (f.group === 'proteina' || f.group === 'lacteo') grams = o.protein > 0 ? (it.grams * f.protein) / o.protein : 0;

@@ -23,7 +23,7 @@ test('1. registrar una serie y recuperarla al recargar', async ({ page }) => {
   await fresh(page);
   await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Entrenar' }).click();
   await page.getByRole('combobox', { name: 'Sesión' }).selectOption('lunes');
-  await page.getByRole('button', { name: 'Empezar sesión y cargar series' }).click();
+  await page.getByRole('button', { name: 'Empezar entrenamiento' }).click();
   await page.getByLabel('Serie 1 kg').first().fill('42,5');
   await page.getByLabel('Serie 1 repeticiones', { exact: true }).first().fill('8');
   await page.getByLabel('Serie 1 repeticiones en reserva').first().selectOption('2');
@@ -41,7 +41,7 @@ test('1. registrar una serie y recuperarla al recargar', async ({ page }) => {
   await expect(page.getByLabel('Calentamiento 1 kg')).toHaveValue('20');
   await expect(page.getByText('1/2').first()).toBeVisible(); // calentamiento no cuenta
   await expect(page.getByRole('timer')).toBeVisible(); // el temporizador sobrevive a la recarga
-  await page.getByRole('button', { name: 'Terminar sesión' }).click();
+  await page.getByRole('button', { name: 'Finalizar entrenamiento' }).click();
   await page.getByRole('button', { name: 'Guardar como incompleta' }).click();
   await expect(page.getByText('Incompleta').first()).toBeVisible();
   await noHorizontalScroll(page);
@@ -208,4 +208,49 @@ test('PWA: funciona sin conexión después de la primera carga', async ({ page, 
   await page.getByRole('dialog', { name: 'Líquidos' }).getByRole('button', { name: '+250 ml' }).click();
   await expect(page.getByRole('dialog', { name: 'Líquidos' }).getByText('250 ml').first()).toBeVisible();
   await context.setOffline(false);
+});
+
+test('programa: aplicar, sesión guiada con "Hecha" que completa lo indicado y control semanal', async ({ page }) => {
+  await fresh(page);
+  await page.getByRole('button', { name: 'Ver y aplicar' }).click();
+  await page.getByRole('button', { name: 'Aplicar programa' }).first().click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Aplicar programa' }).click();
+  await expect(page.getByText(/Semana 1 · Adaptación|Empieza el/).first()).toBeVisible();
+  await expect(page.getByText('Calorías y macros')).toBeVisible();
+
+  // Entrenamiento guiado
+  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Entrenar' }).click();
+  await page.getByRole('combobox', { name: 'Sesión' }).selectOption('lunes');
+  await expect(page.getByText('Lo que te toca hoy')).toBeVisible();
+  await expect(page.locator('a.yt').first()).toHaveAttribute('href', /youtube\.com\/results\?search_query=/);
+  await page.getByRole('button', { name: 'Empezar entrenamiento' }).click();
+  // Primera vez (calibración): sin kg no deja marcar
+  await page.getByRole('button', { name: 'Serie 1 marcar hecha' }).first().click();
+  await expect(page.getByText('Anotá los kg que usaste en esta serie')).toBeVisible();
+  await page.getByLabel('Serie 1 kg').first().fill('40');
+  await page.getByLabel('Serie 1 kg').first().blur();
+  await page.getByRole('button', { name: 'Serie 1 marcar hecha' }).first().click();
+  // "Hecha" completó reps y RIR con lo indicado y pasó el peso a la serie siguiente
+  await expect(page.getByLabel('Serie 1 repeticiones', { exact: true }).first()).toHaveValue('10');
+  await expect(page.getByLabel('Serie 2 kg').first()).toHaveValue('40');
+  await page.getByRole('button', { name: 'Serie 2 marcar hecha' }).first().click();
+  await expect(page.getByText('✓ Press inclinado en máquina terminado')).toBeVisible();
+  // El primer ejercicio se cierra y el siguiente queda abierto
+  await expect(page.locator('#ex-0.collapsed')).toBeVisible();
+  await expect(page.locator('#ex-1.s-current')).toBeVisible();
+  await expect(page.getByText(/2 de \d+ series/)).toBeVisible();
+
+  // Control semanal
+  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Progreso' }).click();
+  await page.getByRole('radio', { name: 'Control' }).click();
+  await expect(page.getByText('Faltan datos para evaluar')).toBeVisible();
+  await page.getByRole('button', { name: /Registrar peso y medidas/ }).click();
+  const d = page.getByRole('dialog', { name: 'Peso y medidas' });
+  await d.getByLabel('Peso (kg)').fill('110');
+  await d.getByLabel('Abdomen (cm)').fill('120');
+  await d.getByLabel('Pecho (cm)').fill('110');
+  await d.getByLabel('Bíceps (cm)').fill('41');
+  await d.getByRole('button', { name: 'Guardar' }).click();
+  await page.getByRole('radio', { name: 'Gráficos' }).click();
+  await expect(page.getByRole('img', { name: 'Pecho y bíceps' })).toBeVisible();
 });
