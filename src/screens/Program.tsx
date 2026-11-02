@@ -5,9 +5,10 @@ import { Chip, CountUp, Empty, Field, Segmented, useConfirm, useToast } from '..
 import { BLOCKS, blockForWeek, PROGRAM_WEEKS } from '../data/program';
 import { getProfile, getSettings } from '../lib/app';
 import { avgOf, evaluateWeek, strengthTrend } from '../lib/checkin';
-import { addDays, formatShort } from '../lib/dates';
-import { all, kvGet, patchDay } from '../lib/db';
-import { energyPlan, projection, waistToHeight } from '../lib/energy';
+import { addDays, diffDays, formatShort } from '../lib/dates';
+import { all, kvGet, kvSet, patchDay } from '../lib/db';
+import { NumInput } from '../components/NumInput';
+import { energyPlan, projection, targetPace, waistToHeight } from '../lib/energy';
 import { n0, n1 } from '../lib/format';
 import { goalFor, setGoal } from '../lib/goals';
 import { useLive } from '../lib/hooks';
@@ -76,6 +77,8 @@ export function WeeklyControl() {
           }}>Aplicar {res.kcalDelta > 0 ? '+' : '−'}{Math.abs(res.kcalDelta)} kcal ({n0(kcalNow)} → {n0(kcalNow + res.kcalDelta)})</button>
         )}
       </section>
+
+      <TargetCard />
 
       <section className="stat-tiles">
         <div className="stat-tile"><div className="stat-value">{daysWithMeals}/7</div><div className="stat-label">días con las 4 comidas</div></div>
@@ -180,6 +183,8 @@ export function ProgramView() {
         {!d.applied ? <button className="btn primary block lg" onClick={apply}>Aplicar programa</button>
           : <button className="btn ghost small" onClick={apply}>Reiniciar desde el próximo lunes</button>}
       </section>
+
+      <TargetCard />
 
       <section className="card stack">
         <h2 className="h2">Meta a largo plazo: físico atlético y marcado</h2>
@@ -293,5 +298,48 @@ export function ProgramView() {
         </ul>
       </section>
     </>
+  );
+}
+
+export interface Target6m { weightKg: number | null; waistCm: number | null }
+
+/** Objetivo a 6 meses (por ejemplo, tu foto objetivo) y ritmo necesario para llegar. */
+export function TargetCard() {
+  const { today } = useNav();
+  const d = useLive(async () => {
+    const [target, body, programStart] = await Promise.all([kvGet<Target6m>('target6m'), all('body'), kvGet<string>('programStart')]);
+    return { target: target ?? { weightKg: null, waistCm: null }, body, programStart };
+  }, []);
+  if (!d) return null;
+  const save = (p: Partial<Target6m>) => kvSet('target6m', { ...d.target, ...p });
+  const weights = d.body.filter((b) => b.weightKg != null).map((b) => ({ date: b.date, value: b.weightKg! }));
+  const weeks = weeklyAverages(weights);
+  const current = weeks.at(-1)?.avg ?? weights.at(-1)?.value ?? null;
+  const recent = weeks.slice(-3);
+  const actual = recent.length >= 2 ? (recent[0].avg - recent.at(-1)!.avg) / (recent.length - 1) : null;
+  const end = d.programStart ? addDays(d.programStart, PROGRAM_WEEKS * 7) : addDays(today, PROGRAM_WEEKS * 7);
+  const weeksLeft = Math.max(0, Math.round(diffDays(today, end) / 7));
+  const lastWaist = [...d.body].filter((b) => b.waistCm != null).sort((a, b) => b.date.localeCompare(a.date))[0]?.waistCm ?? null;
+  const pace = current != null && d.target.weightKg != null ? targetPace(current, d.target.weightKg, weeksLeft, actual) : null;
+  const label = { logrado: '¡Objetivo de peso alcanzado!', 'en-camino': 'Vas en camino', 'por-debajo': 'Por debajo del ritmo', 'sin-datos': 'Faltan 2 semanas de pesajes para medir tu ritmo', exigente: 'Ritmo muy exigente para el tiempo que queda' };
+  return (
+    <section className="card stack target-card">
+      <div className="row between"><h2 className="h2">Objetivo a 6 meses</h2>{pace && <Chip tone={pace.status === 'en-camino' || pace.status === 'logrado' ? 'green' : pace.status === 'sin-datos' ? 'gray' : 'amber'}>{label[pace.status].split(' ').slice(0, 3).join(' ')}</Chip>}</div>
+      <div className="row gap">
+        <Field label="Peso objetivo (kg)"><NumInput label="Peso objetivo" value={d.target.weightKg} min={40} max={250} onCommit={(v) => save({ weightKg: v })} placeholder="Ej.: 92" /></Field>
+        <Field label="Abdomen objetivo (cm)"><NumInput label="Abdomen objetivo" value={d.target.waistCm} min={50} max={200} onCommit={(v) => save({ waistCm: v })} placeholder="Ej.: 96" /></Field>
+      </div>
+      {pace ? (
+        <>
+          <div className="stat-tiles">
+            <div className="stat-tile"><div className="stat-value">{n1(pace.toLose)} kg</div><div className="stat-label">te faltan</div></div>
+            <div className="stat-tile"><div className="stat-value">{weeksLeft}</div><div className="stat-label">semanas (hasta {formatShort(end)})</div></div>
+            <div className="stat-tile"><div className="stat-value">{n1(pace.needed)} kg</div><div className="stat-label">por semana necesarios ({n1(pace.neededPct)} %)</div></div>
+          </div>
+          <p className="small"><b>{label[pace.status]}.</b> {actual != null ? `Tu ritmo de las últimas semanas: ${actual >= 0 ? '−' : '+'}${n1(Math.abs(actual))} kg/semana.` : ''} {lastWaist != null && d.target.waistCm != null ? `Abdomen: ${n1(lastWaist)} → ${n1(d.target.waistCm)} cm (faltan ${n1(Math.max(0, lastWaist - d.target.waistCm))} cm).` : ''}</p>
+          <p className="tiny muted">El ritmo sano es 0,5–1 % del peso por semana. Si quedás por debajo 2 semanas seguidas con buena constancia, el Control te propone el ajuste (−150 kcal o +1.000 pasos). No conviene ir más rápido de 1 %/semana: se pierde músculo.</p>
+        </>
+      ) : <p className="small muted">Cargá tu peso objetivo y registrá tu peso para ver el ritmo que necesitás.</p>}
+    </section>
   );
 }

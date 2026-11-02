@@ -56,3 +56,16 @@ export function projection(weightKg: number, days: number) {
 
 /** Relación cintura/altura: indicador simple de grasa abdominal (no es un diagnóstico). */
 export const waistToHeight = (waistCm: number, heightCm: number) => Math.round((waistCm / heightCm) * 100) / 100;
+
+/** Ritmo necesario para llegar a un peso objetivo y comparación con el ritmo actual (kg/semana). */
+export function targetPace(currentKg: number, targetKg: number, weeksLeft: number, actualKgPerWeek: number | null) {
+  const toLose = Math.max(0, currentKg - targetKg);
+  const needed = weeksLeft > 0 ? toLose / weeksLeft : toLose;
+  const neededPct = (needed / currentKg) * 100;
+  const status: 'logrado' | 'en-camino' | 'por-debajo' | 'sin-datos' | 'exigente' =
+    toLose === 0 ? 'logrado'
+      : neededPct > 1.1 ? 'exigente'
+        : actualKgPerWeek == null ? 'sin-datos'
+          : actualKgPerWeek >= needed * 0.85 ? 'en-camino' : 'por-debajo';
+  return { toLose: Math.round(toLose * 10) / 10, needed: Math.round(needed * 100) / 100, neededPct: Math.round(neededPct * 100) / 100, status };
+}

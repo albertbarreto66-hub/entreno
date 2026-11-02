@@ -120,14 +120,16 @@ export async function applyBackup(parsed: ParsedBackup) {
 /** ¿El respaldo solo trae perfil, ajustes, metas y medidas (sin comidas, sesiones ni fotos)? */
 export function isProfileOnly(p: ParsedBackup) {
   const c = p.preview.counts;
-  return !c.meals && !c.sessions && !c.fluids && !c.photos && !c.days && !c.health;
+  const onlyGoalPhotos = p.stores.photos.every((x) => x.kind === 'objetivo');
+  return !c.meals && !c.sessions && !c.fluids && onlyGoalPhotos && !c.days && !c.health;
 }
 
 /** Carga perfil y medidas de un archivo de perfil SIN borrar los registros existentes. */
 export async function mergeProfile(parsed: ParsedBackup) {
   const db = await getDB();
-  const tx = db.transaction(['kv', 'body', 'goals'], 'readwrite');
-  for (const r of parsed.stores.kv) if (r.key === 'profile') await tx.objectStore('kv').put(r);
+  const tx = db.transaction(['kv', 'body', 'goals', 'photos'], 'readwrite');
+  for (const r of parsed.stores.photos) if (r.kind === 'objetivo' && !(await tx.objectStore('photos').get(r.id as string))) await tx.objectStore('photos').put(r);
+  for (const r of parsed.stores.kv) if (r.key === 'profile' || r.key === 'target6m') await tx.objectStore('kv').put(r);
   for (const r of parsed.stores.body) if (!(await tx.objectStore('body').get(r.id as string))) await tx.objectStore('body').put(r);
   await tx.done;
   emitChange('*');

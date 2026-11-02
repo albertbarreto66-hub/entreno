@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activityFactor, energyPlan, mifflin, projection, waistToHeight } from '../src/lib/energy';
+import { activityFactor, energyPlan, mifflin, projection, targetPace, waistToHeight } from '../src/lib/energy';
 
 describe('energía', () => {
   it('Mifflin-St Jeor: hombre 110 kg, 186 cm, 25 años = 2142,5 kcal', () => {
@@ -27,5 +27,18 @@ describe('energía', () => {
   });
   it('cintura/altura', () => {
     expect(waistToHeight(120, 186)).toBe(0.65);
+  });
+});
+
+describe('ritmo hacia el objetivo', () => {
+  it('110 → 92 kg en 24 semanas pide 0,75 kg/semana (~0,7 %)', () => {
+    const r = targetPace(110, 92, 24, null);
+    expect(r.toLose).toBe(18);
+    expect(r.needed).toBe(0.75);
+    expect(r.status).toBe('sin-datos');
+    expect(targetPace(110, 92, 24, 0.7).status).toBe('en-camino');
+    expect(targetPace(110, 92, 24, 0.4).status).toBe('por-debajo');
+    expect(targetPace(110, 92, 8, 0.7).status).toBe('exigente');
+    expect(targetPace(91, 92, 8, 0.7).status).toBe('logrado');
   });
 });
