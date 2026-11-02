@@ -21,8 +21,8 @@ export interface Block {
 }
 
 export const BLOCKS: Block[] = [
-  { n: 1, name: 'Adaptación y técnica', weeks: [1, 4], goal: 'Aprender los ejercicios, calibrar cargas y crear el hábito sin dolores.',
-    setsDelta: -1, priorityExtra: 0, rir: 3,
+  { n: 1, name: 'Adaptación y técnica', weeks: [1, 4], goal: 'Volumen completo desde el día 1, calibrar cargas y afianzar la técnica dejando 3 repeticiones en reserva.',
+    setsDelta: 0, priorityExtra: 0, rir: 3,
     steps: 'Arrancá en tu promedio actual (≈ 10.000–11.000). Subí 500 por semana solo si cumpliste 5 de 7 días sin dolor.',
     nutrition: 'Déficit moderado con el menú (≈ 2.450 kcal, ≈ 185 g de proteína). Prioridad: cumplir las 4 comidas y pesar porciones.',
     recovery: 'Acostarte 30 minutos antes cada semana hasta llegar a las 00:00. Dormir al menos 7 h.',

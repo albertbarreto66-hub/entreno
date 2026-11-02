@@ -27,7 +27,7 @@ export function plannedSetsFor(t: ExerciseTemplate, week: number, opts: { adapta
   const block = blockForWeek(week);
   let n = t.sets + block.setsDelta + (t.priority ? block.priorityExtra : 0);
   n = Math.max(2, n); // nunca menos de 2 series efectivas
-  if (week === 1 || opts.adaptation) n = 2;
+  if (opts.adaptation) n = 2;
   if (isDeloadWeek(week)) n = Math.max(1, Math.ceil(t.sets / 2));
   if (opts.reduced) n -= 1;
   return Math.max(1, Math.min(n, 5));

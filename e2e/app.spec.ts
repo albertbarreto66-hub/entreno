@@ -39,7 +39,7 @@ test('1. registrar una serie y recuperarla al recargar', async ({ page }) => {
   await expect(page.getByLabel('Serie 1 repeticiones', { exact: true }).first()).toHaveValue('8');
   await expect(page.getByRole('button', { name: 'Serie 1 hecha' }).first()).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByLabel('Calentamiento 1 kg')).toHaveValue('20');
-  await expect(page.getByText('1/2').first()).toBeVisible(); // calentamiento no cuenta
+  await expect(page.getByText('1/3').first()).toBeVisible(); // calentamiento no cuenta
   await expect(page.getByRole('timer')).toBeVisible(); // el temporizador sobrevive a la recarga
   await page.getByRole('button', { name: 'Finalizar entrenamiento' }).click();
   await page.getByRole('button', { name: 'Guardar como incompleta' }).click();
@@ -234,11 +234,11 @@ test('programa: aplicar, sesión guiada con "Hecha" que completa lo indicado y c
   await expect(page.getByLabel('Serie 1 repeticiones', { exact: true }).first()).toHaveValue('10');
   await expect(page.getByLabel('Serie 2 kg').first()).toHaveValue('40');
   await page.getByRole('button', { name: 'Serie 2 marcar hecha' }).first().click();
-  await expect(page.getByText('✓ Press inclinado en máquina terminado')).toBeVisible();
+  await page.getByRole('button', { name: 'Serie 3 marcar hecha' }).first().click();
   // El primer ejercicio se cierra y el siguiente queda abierto
   await expect(page.locator('#ex-0.collapsed')).toBeVisible();
   await expect(page.locator('#ex-1.s-current')).toBeVisible();
-  await expect(page.getByText(/2 de \d+ series/)).toBeVisible();
+  await expect(page.getByText(/3 de 18 series/)).toBeVisible();
 
   // Control semanal
   await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Progreso' }).click();

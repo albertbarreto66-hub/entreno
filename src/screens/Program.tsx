@@ -229,7 +229,7 @@ export function ProgramView() {
             <p className="small">{b.goal}</p>
             {open === b.n && (
               <ul className="list small">
-                <li><b>Entrenamiento:</b> {b.setsDelta < 0 ? 'una serie menos que la base (semana 1: 2 series)' : b.priorityExtra ? '+1 serie en ejercicios prioritarios' : 'series base'}; RIR {b.rir}{b.deloadWeek ? `; semana ${b.deloadWeek} de descarga` : ''}.</li>
+                <li><b>Entrenamiento:</b> {b.priorityExtra ? '+1 serie en ejercicios prioritarios' : 'series completas'}; RIR {b.rir}{b.deloadWeek ? `; semana ${b.deloadWeek} de descarga` : ''}.</li>
                 <li><b>Pasos:</b> {b.steps}</li>
                 <li><b>Nutrición:</b> {b.nutrition}</li>
                 <li><b>Recuperación:</b> {b.recovery}</li>

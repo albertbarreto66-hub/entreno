@@ -24,7 +24,8 @@ describe('plantillas y programa', () => {
       }
     }
   });
-  it('torso tres días y pierna dos (martes y jueves); cada sesión entra en ~60 minutos', () => {
+  it('torso tres días y pierna dos (martes y jueves); 18 series desde la semana 1 y cada sesión entra en ~60 minutos', () => {
+    for (const t of DEFAULT_TEMPLATES) expect(t.exercises.reduce((a, e) => a + plannedSetsFor(e, 1), 0), t.name).toBe(18);
     const LEG = /prensa|sentadilla|femoral|hip thrust|abducci|gemelo|rumano|cuádriceps/i;
     for (const t of DEFAULT_TEMPLATES) {
       const legs = t.exercises.filter((e) => LEG.test(e.name)).length;
@@ -44,12 +45,13 @@ describe('plantillas y programa', () => {
     expect(isDeloadWeek(24)).toBe(true);
     expect(isDeloadWeek(11)).toBe(false);
   });
-  it('series según bloque: semana 1 = 2, base desde la 5, +1 en prioritarios en bloque 3, mitad en descarga', () => {
-    expect(plannedSetsFor(press, 1)).toBe(2);
-    expect(plannedSetsFor(press, 3)).toBe(2); // bloque 1: base − 1
+  it('series según bloque: completas desde la semana 1, +1 en prioritarios en bloque 3, mitad en descarga', () => {
+    expect(plannedSetsFor(press, 1)).toBe(3);
+    expect(plannedSetsFor(press, 3)).toBe(3);
     expect(plannedSetsFor(press, 6)).toBe(3);
     expect(plannedSetsFor(press, 10)).toBe(4); // prioritario +1
     expect(plannedSetsFor(press, 12)).toBe(2); // descarga
+    expect(plannedSetsFor(press, 6, { adaptation: true })).toBe(2);
     const noPrio = lunes.exercises.find((e) => !e.priority)!;
     expect(plannedSetsFor(noPrio, 10)).toBe(noPrio.sets);
     expect(plannedSetsFor(press, 6, { reduced: true })).toBe(2);
@@ -96,7 +98,7 @@ describe('sesión', () => {
     const a = newSession(lunes, '2026-11-02', { week: 1 });
     expect(a.exercises.every((e) => e.target?.kind === 'calibracion' && e.target.kg == null)).toBe(true);
     a.status = 'completada';
-    a.exercises[0].sets = [{ kg: 40, reps: 10, rir: 3, done: true }, { kg: 40, reps: 10, rir: 3, done: true }];
+    a.exercises[0].sets = [{ kg: 40, reps: 10, rir: 3, done: true }, { kg: 40, reps: 10, rir: 3, done: true }, { kg: 40, reps: 10, rir: 3, done: true }];
     const b = newSession(lunes, '2026-11-09', { week: 2, history: [a] });
     expect(b.exercises[0].target).toMatchObject({ kind: 'subir', kg: 42.5 });
     expect(b.exercises[1].target?.kind).toBe('calibracion');
