@@ -613,3 +613,13 @@ details.card.stack > summary + * { margin-top: 12px; }
 .check:not(.done):not(.na) .check-state { display: none; }
 .check { min-height: 58px; }
 .in-player .toast:not(.error) { display: none; }
+:root {
+  --fig-skin-1: #f1f2f4; --fig-skin-2: #b9bfc8;
+  --fig-far-1: #6a727d; --fig-far-2: #3f464f;
+  --fig-hl-1: #ff7a52; --fig-hl-2: #d93a1c;
+  --fig-hlfar-1: #9c3a20; --fig-hlfar-2: #6b2414;
+}
+.fx-shape { stroke: #5b636e; stroke-width: .7; stroke-linejoin: round; }
+.fx-detail { stroke: #8d949e; stroke-width: .7; fill: none; stroke-linecap: round; }
+.fx-arrow path { fill: none; stroke: var(--brand); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: .55; }
+.fx-arrow path:first-child { stroke-dasharray: 3 3; }
