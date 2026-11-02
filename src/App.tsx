@@ -64,7 +64,7 @@ export default function App() {
   const go = (r: Route, s = '') => { location.hash = `#/${r}${s ? '/' + s : ''}`; window.scrollTo(0, 0); };
 
   if (err) return <div className="boot"><h1>No se pudo abrir el almacenamiento</h1><p>{err}</p><p className="muted">Puede pasar en modo privado o si el navegador bloquea el almacenamiento local.</p></div>;
-  if (!ready) return <div className="boot"><p className="muted">Cargando…</p></div>;
+  if (!ready) return <div className="boot"><p className="wordmark">FORJA</p><p className="muted">Cargando…</p></div>;
 
   const isToday = date === today;
   return (

@@ -30,3 +30,7 @@ export const IconTimer = (p: Props) => <I {...p}><circle cx="12" cy="13.5" r="7.
 export const IconLeaf = (p: Props) => <I {...p}><path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15" /><path d="M5 19c3-4 6-6.5 10-8.5" /></I>;
 export const IconNote = (p: Props) => <I {...p}><path d="M5 4h10l4 4v12H5V4Z" /><path d="M14 4v5h5M8.5 13h7M8.5 16.5h5" /></I>;
 export const IconChevron = (p: Props & { dir?: 'left' | 'right' }) => <I size={p.size}><path d={p.dir === 'left' ? 'm15 5-7 7 7 7' : 'm9 5 7 7-7 7'} /></I>;
+export const IconClose = (p: Props) => <I {...p}><path d="M6 6l12 12M18 6 6 18" /></I>;
+export const IconMinus = (p: Props) => <I {...p}><path d="M5 12h14" /></I>;
+export const IconList = (p: Props) => <I {...p}><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01" /></I>;
+export const IconPlay = (p: Props) => <I {...p}><path d="M8 5.5v13l10.5-6.5L8 5.5Z" /></I>;

@@ -195,9 +195,9 @@ function CalendarReminders({ items }: { items: ScheduleItem[] }) {
       <details className="howto">
         <summary>Cómo queda y cómo quitarlo</summary>
         <ul className="list small">
-          <li>Se abre Safari con la lista de eventos: tocá <b>Agregar todos</b> y elegí un calendario (podés crear uno llamado "Entreno").</li>
+          <li>Se abre Safari con la lista de eventos: tocá <b>Agregar todos</b> y elegí un calendario (podés crear uno llamado "Forja").</li>
           <li>Tienen que estar activas las notificaciones de <b>Calendario</b> (Ajustes del iPhone → Notificaciones → Calendario).</li>
-          <li>Si cambiás tu horario, borrá los eventos viejos (o el calendario "Entreno") y volvé a agregarlos.</li>
+          <li>Si cambiás tu horario, borrá los eventos viejos (o el calendario "Forja") y volvé a agregarlos.</li>
           <li>Son avisos con notificación, no alarmas con sonido fuerte: para despertarte usá la alarma del iPhone.</li>
         </ul>
       </details>

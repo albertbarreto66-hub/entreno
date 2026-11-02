@@ -2,12 +2,13 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useNav } from '../App';
 import { SleepSheet, sourceChip, StepsSheet, WaterSheet, WeightSheet } from '../components/QuickSheets';
 import { IconBed, IconComidas, IconDrop, IconEntrenar, IconFlame, IconHeart, IconLeaf, IconScale, IconSteps, IconSun, IconBowl, IconCup, IconMoon } from '../components/icons';
+import { ExerciseAnim } from '../components/ExerciseAnim';
 import { Check, CountUp, Field, IconBadge, Segmented, Sheet, useConfirm } from '../components/ui';
 import { programWeek } from '../lib/training';
 import { programApplied } from '../lib/programApply';
 import { STEP_GOAL_MAX } from '../data/profile';
 import { patchSettings, getProfile, getSchedule } from '../lib/app';
-import { formatLong, timeHM, weekday } from '../lib/dates';
+import { timeHM, weekday } from '../lib/dates';
 import { del, kvGet, patchDay, put } from '../lib/db';
 import { n0, n1, parseIntLoose } from '../lib/format';
 import { setGoal } from '../lib/goals';
@@ -95,15 +96,24 @@ export function Today() {
           <p className="eyebrow">{greeting(isToday)}{profile?.name ? `, ${profile.name}` : ''}</p>
           {applied && programStart && <button className="chip-btn" onClick={() => go('progreso', 'programa')}>Semana {Math.min(programWeek(programStart, date), 24)} de 24 ›</button>}
         </div>
-        <h1 className="h1">
-          {s.day.recovery ? 'Día de recuperación' : s.template ? s.template.name : wd === 0 || wd === 6 ? 'Fin de semana' : 'Sin rutina'}
-        </h1>
-        <p className="muted small">
-          {s.day.recovery ? 'Descansar también es parte del plan.' : s.template ? `${formatLong(date).split(' ')[0]} · gimnasio 08:00–09:10 · ${s.template.exercises.length} ejercicios` : 'Sin gimnasio programado. Caminata y comidas como siempre.'}
-        </p>
+        <div className="today-head">
+          <div className="grow" style={{ minWidth: 0 }}>
+            <h1 className="h1">
+              {s.day.recovery ? 'Recuperación' : s.template ? s.template.name.split(' · ')[0] : wd === 0 || wd === 6 ? 'Fin de semana' : 'Día libre'}
+            </h1>
+            <p className="ink2 small">
+              {s.day.recovery ? 'Descansar también es parte del plan.' : s.template ? `${s.template.name.split(' · ')[1] ?? ''} · ${s.template.exercises.length} ejercicios` : 'Caminata y comidas como siempre.'}
+            </p>
+          </div>
+          <div className="today-fig" aria-hidden="true">
+            {s.template && !s.day.recovery
+              ? <ExerciseAnim ex={s.template.exercises[0]} size={120} />
+              : <ExerciseAnim ex={{ name: 'caminata' }} size={120} />}
+          </div>
+        </div>
         {s.template && !s.day.recovery && (
           s.trainingDone
-            ? <p className="ok-line">✓ Entrenamiento registrado. ¡Bien ahí!</p>
+            ? <p className="ok-line">Entrenamiento registrado.</p>
             : <button className="btn primary block lg" style={{ marginTop: 12 }} onClick={() => go('entrenar')}><IconEntrenar />{activeSession ? 'Continuar entrenamiento' : 'Empezar entrenamiento'}</button>
         )}
         <div className="hero-stats">
@@ -157,8 +167,8 @@ export function Today() {
       )}
 
       {/* Cómo estás */}
-      <section className="card stack">
-        <h2 className="h2"><IconBadge tone="brand" size="sm"><IconLeaf /></IconBadge>Cómo te sentís</h2>
+      <details className="card stack" open={(s.day.pain ?? 0) > 0 || !!s.day.recovery || s.day.recoveryFeel === 'mala' || undefined}>
+        <summary className="h2"><IconBadge tone="brand" size="sm"><IconLeaf /></IconBadge>Cómo te sentís</summary>
         <Field label="Dolor o molestias hoy">
           <Segmented label="Dolor o molestias" value={s.day.pain ?? 0} onChange={(v) => patchDay(date, { pain: v as 0 | 1 | 2 | 3 })}
             options={[{ value: 0, label: 'Nada' }, { value: 1, label: 'Leve' }, { value: 2, label: 'Moderado' }, { value: 3, label: 'Fuerte' }]} />
@@ -176,7 +186,7 @@ export function Today() {
         <Field label="Notas del día">
           <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={() => notes !== (s.day.notes ?? '') && patchDay(date, { notes })} placeholder="Cómo dormiste, energía, hinchazón, lo que quieras anotar" />
         </Field>
-      </section>
+      </details>
 
       {schedule && (
         <details className="card">
@@ -223,7 +233,7 @@ function Welcome() {
   };
   return (
     <section className="card welcome stack">
-      <h2 className="h2">Hola{profile?.name ? `, ${profile.name}` : ''} 👋</h2>
+      <h2 className="h2">Hola{profile?.name ? `, ${profile.name}` : ''}</h2>
       <p>Esta app guarda todo en este dispositivo. Nada se envía a internet.</p>
       <p><b>Meta de pasos para la semana 1.</b> Pediste 15.000 si ya los tolerás; si no, empezá más abajo. No sube sola: cada semana podés revisarla.</p>
       <Segmented label="Meta de pasos inicial" value={custom ? 0 : v} onChange={(x) => { setV(x); setCustom(''); }}

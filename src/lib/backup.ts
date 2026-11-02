@@ -31,7 +31,7 @@ export async function exportBackup(): Promise<Blob> {
     } else stores[s] = rows;
   }
   zip.file('data.json', JSON.stringify({ format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: new Date().toISOString(), stores }, null, 1));
-  zip.file('LEEME.txt', 'Respaldo de la app Entreno.\ndata.json: registros. photos/: fotos.\nSe restaura desde Ajustes > Respaldo > Restaurar.\n');
+  zip.file('LEEME.txt', 'Respaldo de la app Forja.\ndata.json: registros. photos/: fotos.\nSe restaura desde Ajustes > Respaldo > Restaurar.\n');
   return zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
 }
 
@@ -55,7 +55,7 @@ export async function parseBackup(file: Blob): Promise<ParsedBackup | BackupErro
   const dataFile = zip.file('data.json') ?? candidates.sort((a, b) => a.name.length - b.name.length)[0] ?? null;
   if (!dataFile) {
     if (zip.file(/(^|\/)package\.json$/).length) return { ok: false, errors: ['Este es el ZIP con el código de la app, no un respaldo. Elegí "perfil-albert.zip" o un respaldo exportado desde Ajustes.'] };
-    return { ok: false, errors: ['Este archivo no es un respaldo de Entreno (no tiene data.json). Elegí "perfil-albert.zip" o un respaldo exportado desde Ajustes.'] };
+    return { ok: false, errors: ['Este archivo no es un respaldo de Forja (no tiene data.json). Elegí "perfil-albert.zip" o un respaldo exportado desde Ajustes.'] };
   }
   const prefix = dataFile.name.slice(0, dataFile.name.length - 'data.json'.length);
   let data: { format?: string; version?: number; exportedAt?: string; stores?: Record<string, unknown> };

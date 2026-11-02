@@ -56,8 +56,8 @@ export function ShortcutHowTo() {
         <li><b>FC en reposo</b> (opcional): <i>Buscar muestras de Salud</i> → Tipo: <b>Frecuencia cardíaca en reposo</b>; Fecha de inicio · en los últimos 1 días; ordenar por más reciente; límite 1.</li>
         <li><b>Sueño</b> (opcional): <i>Buscar muestras de Salud</i> → Tipo: <b>Análisis del sueño</b>; Fecha de finalización · es hoy; Fuente · Garmin. Luego <i>Obtener detalles de muestras de Salud</i> → <b>Duración</b> y <i>Calcular estadísticas</i> → Suma. Si el total te da el doble de lo real, sacá esta parte.</li>
         <li><i>Texto</i>: <code>fecha=</code>[Fecha actual con formato personalizado <code>yyyy-MM-dd</code>]<code>; pasos=</code>[Suma de pasos]<code>; fc=</code>[FC]<code>; sueno=</code>[Suma de sueño]. Lo que no uses, no lo pongas.</li>
-        <li><i>Copiar al portapapeles</i> (el Texto) y, si querés, <i>Mostrar notificación</i>: "Listo, volvé a Entreno y tocá Pegar".</li>
-        <li>Usalo: abrí Garmin Connect para que sincronice → en Entreno tocá <b>1 · Ejecutar Atajo</b> → volvé a Entreno → <b>2 · Pegar datos de Garmin</b>.</li>
+        <li><i>Copiar al portapapeles</i> (el Texto) y, si querés, <i>Mostrar notificación</i>: "Listo, volvé a Forja y tocá Pegar".</li>
+        <li>Usalo: abrí Garmin Connect para que sincronice → en Forja tocá <b>1 · Ejecutar Atajo</b> → volvé a Forja → <b>2 · Pegar datos de Garmin</b>.</li>
       </ol>
       <p className="tiny muted">El Atajo lee Salud en tu iPhone; la app recibe solo el texto que pegás. Importar el mismo día otra vez reemplaza los datos (no duplica). Los pasos del Atajo cuentan como datos del reloj. Los nombres de los menús de Atajos pueden variar un poco según la versión de iOS.</p>
     </details>

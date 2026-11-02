@@ -24,6 +24,8 @@ test('1. registrar una serie y recuperarla al recargar', async ({ page }) => {
   await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Entrenar' }).click();
   await page.getByRole('combobox', { name: 'Sesión' }).selectOption('lunes');
   await page.getByRole('button', { name: 'Empezar entrenamiento' }).click();
+  await expect(page.getByRole('dialog', { name: 'Modo entrenamiento' })).toBeVisible();
+  await page.getByRole('button', { name: 'Ver lista de ejercicios' }).click();
   await page.getByLabel('Serie 1 kg').first().fill('42,5');
   await page.getByLabel('Serie 1 repeticiones', { exact: true }).first().fill('8');
   await page.getByLabel('Serie 1 repeticiones en reserva').first().selectOption('2');
@@ -224,19 +226,32 @@ test('programa: aplicar, sesión guiada con "Hecha" que completa lo indicado y c
   await expect(page.getByText('Lo que te toca hoy')).toBeVisible();
   await expect(page.locator('a.yt').first()).toHaveAttribute('href', /youtube\.com\/results\?search_query=/);
   await page.getByRole('button', { name: 'Empezar entrenamiento' }).click();
+  // Modo entrenamiento a pantalla completa, con la figura animada
+  const pl = page.getByRole('dialog', { name: 'Modo entrenamiento' });
+  await expect(pl).toBeVisible();
+  await expect(pl.getByRole('img', { name: /Cómo se hace: Press inclinado/ })).toBeVisible();
   // Primera vez (calibración): sin kg no deja marcar
-  await page.getByRole('button', { name: 'Serie 1 marcar hecha' }).first().click();
+  await pl.getByRole('button', { name: 'Serie hecha' }).click();
   await expect(page.getByText('Anotá los kg que usaste en esta serie')).toBeVisible();
-  await page.getByLabel('Serie 1 kg').first().fill('40');
-  await page.getByLabel('Serie 1 kg').first().blur();
-  await page.getByRole('button', { name: 'Serie 1 marcar hecha' }).first().click();
-  // "Hecha" completó reps y RIR con lo indicado y pasó el peso a la serie siguiente
-  await expect(page.getByLabel('Serie 1 repeticiones', { exact: true }).first()).toHaveValue('10');
-  await expect(page.getByLabel('Serie 2 kg').first()).toHaveValue('40');
-  await page.getByRole('button', { name: 'Serie 2 marcar hecha' }).first().click();
-  await page.getByRole('button', { name: 'Serie 3 marcar hecha' }).first().click();
-  // El primer ejercicio se cierra y el siguiente queda abierto
-  await expect(page.locator('#ex-0.collapsed')).toBeVisible();
+  await pl.getByRole('textbox', { name: 'Kilos' }).fill('40');
+  await pl.getByRole('button', { name: 'Serie hecha' }).click();
+  await expect(page.getByRole('timer', { name: 'Descanso' })).toBeVisible();
+  await page.getByRole('button', { name: 'Saltar' }).click();
+  // El peso pasa a la serie siguiente; las reps vienen indicadas
+  await expect(pl.getByRole('textbox', { name: 'Kilos' })).toHaveValue('40');
+  await expect(pl.getByRole('status', { name: 'Repeticiones' })).toHaveText('10');
+  await pl.getByRole('button', { name: 'Sumar kilos' }).click();
+  await expect(pl.getByRole('textbox', { name: 'Kilos' })).toHaveValue('42,5');
+  await pl.getByRole('button', { name: 'Restar kilos' }).click();
+  await pl.getByRole('button', { name: 'Serie hecha' }).click();
+  await page.getByRole('button', { name: 'Saltar' }).click();
+  await pl.getByRole('button', { name: 'Serie hecha' }).click();
+  // Pasa solo al ejercicio siguiente
+  await expect(pl.getByRole('heading', { name: 'Jalón al pecho agarre ancho' })).toBeVisible();
+  await page.getByRole('button', { name: 'Saltar' }).click();
+  await pl.getByRole('button', { name: 'Ver lista de ejercicios' }).click();
+  // En la lista: el primero cerrado con lo hecho, el siguiente abierto
+  await expect(page.locator('#ex-0.collapsed')).toContainText('40 kg × 10');
   await expect(page.locator('#ex-1.s-current')).toBeVisible();
   await expect(page.getByText(/3 de 18 series/)).toBeVisible();
 

@@ -23,8 +23,8 @@ const fold = (line: string) => {
 
 const MESSAGES: Record<string, string> = {
   levantarse: 'Arriba. 10 minutos de luz natural y desayuno.',
-  desayuno: 'Desayuno del plan. Registralo en Entreno.',
-  gimnasio: 'Hora del gimnasio: abrí Entreno → Entrenar.',
+  desayuno: 'Desayuno del plan. Registralo en Forja.',
+  gimnasio: 'Hora del gimnasio: abrí Forja → Entrenar.',
   almuerzo: 'Almuerzo del plan + 10 minutos de caminata.',
   cafeina: 'Último mate o café del día.',
   merienda: 'Merienda del plan (whey en agua).',
@@ -41,10 +41,10 @@ export function buildIcs(items: ScheduleItem[], o: IcsOptions) {
     id: it.id, time: it.time, title: it.label, body: MESSAGES[it.id] ?? it.label,
     weekdays: it.id === 'gimnasio', minutes: it.id === 'gimnasio' ? 60 : 10,
   }));
-  if (o.water) for (const t of WATER_TIMES) events.push({ id: `agua-${t.replace(':', '')}`, time: t, title: 'Agua', body: '¿Tomaste agua? Registrala en Entreno (+250 / +500 ml).', minutes: 5 });
+  if (o.water) for (const t of WATER_TIMES) events.push({ id: `agua-${t.replace(':', '')}`, time: t, title: 'Agua', body: '¿Tomaste agua? Registrala en Forja (+250 / +500 ml).', minutes: 5 });
   const lines = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Entreno//Recordatorios//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
-    'X-WR-CALNAME:Entreno', 'X-WR-TIMEZONE:America/Argentina/Buenos_Aires',
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Forja//Recordatorios//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'X-WR-CALNAME:Forja', 'X-WR-TIMEZONE:America/Argentina/Buenos_Aires',
     'BEGIN:VTIMEZONE', 'TZID:America/Argentina/Buenos_Aires', 'BEGIN:STANDARD', 'DTSTART:19700101T000000',
     'TZOFFSETFROM:-0300', 'TZOFFSETTO:-0300', 'TZNAME:-03', 'END:STANDARD', 'END:VTIMEZONE',
   ];

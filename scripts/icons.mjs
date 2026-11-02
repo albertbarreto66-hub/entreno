@@ -12,11 +12,11 @@ async function shot(file, size, html) {
   await p.screenshot({ path: root + file });
   await p.close();
 }
-const icon = (s) => `<div style="background:#1f7a44;width:${s}px;height:${s}px">${svg.replace('<svg ', `<svg width="${s}" height="${s}" `)}</div>`;
+const icon = (s) => `<div style="background:#0b0d10;width:${s}px;height:${s}px">${svg.replace('<svg ', `<svg width="${s}" height="${s}" `)}</div>`;
 for (const [f, s] of [['public/icon-192.png', 192], ['public/icon-512.png', 512], ['public/apple-touch-icon.png', 180]]) await shot(f, s, icon(s));
 if (existsSync(root + 'ios/App/App/Assets.xcassets')) {
   await shot('ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png', 1024, icon(1024));
-  const splash = `<div style="width:2732px;height:2732px;background:#f5f7f5;display:grid;place-items:center">${svg.replace('<svg ', '<svg width="420" height="420" ')}</div>`;
+  const splash = `<div style="width:2732px;height:2732px;background:#0b0d10;display:grid;place-items:center">${svg.replace('<svg ', '<svg width="420" height="420" ')}</div>`;
   for (const n of ['', '-1', '-2']) await shot(`ios/App/App/Assets.xcassets/Splash.imageset/splash-2732x2732${n}.png`, 2732, splash);
 }
 await b.close();

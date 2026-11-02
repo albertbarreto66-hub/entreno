@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNav } from '../App';
+import { ExerciseAnim } from '../components/ExerciseAnim';
 import { NumInput } from '../components/NumInput';
+import { Player } from './Player';
 import { celebrate, Chip, Field, Sheet, useConfirm, useToast } from '../components/ui';
 import { blockForWeek, isDeloadWeek, PROGRAM_WEEKS } from '../data/program';
 import { PRECHECK_TEXT, videoUrl } from '../data/templates';
@@ -33,6 +35,7 @@ export function Train() {
     return { sessions: sessions.sort((a, b) => b.startedAt - a.startedAt), templates, settings, programStart, days, allSessions };
   }, [date]);
   const [viewId, setViewId] = useState<string | null>(null);
+  const [player, setPlayer] = useState(false);
   if (!data) return null;
   const { sessions } = data;
   const current = sessions.find((s) => s.id === viewId) ?? sessions.find((s) => s.status === 'en-curso') ?? null;
@@ -40,11 +43,11 @@ export function Train() {
   return (
     <div className="stack-lg">
       {current ? (
-        <SessionView session={current} {...data} onClose={() => setViewId('__none__')} />
+        <SessionView session={current} {...data} onClose={() => setViewId('__none__')} player={player} setPlayer={setPlayer} />
       ) : (
-        <StartPanel {...data} date={date} onOpen={setViewId} />
+        <StartPanel {...data} date={date} onOpen={(id, play) => { setViewId(id); setPlayer(!!play); }} />
       )}
-      <RestTimer />
+      <RestTimer hidden={player && !!current && current.status === 'en-curso'} />
     </div>
   );
 }
@@ -62,7 +65,7 @@ function dayContext(days: DayLog[], date: string): DayContext {
   return { recoveryFeel: d?.recoveryFeel, sleepHours: d?.sleepHours, pain: d?.pain };
 }
 
-function StartPanel({ templates, programStart, sessions, date, onOpen, allSessions, days }: Data & { date: string; onOpen: (id: string) => void }) {
+function StartPanel({ templates, programStart, sessions, date, onOpen, allSessions, days }: Data & { date: string; onOpen: (id: string, play?: boolean) => void }) {
   const confirm = useConfirm();
   const toast = useToast();
   const def = templateForDate(templates, date);
@@ -82,7 +85,7 @@ function StartPanel({ templates, programStart, sessions, date, onOpen, allSessio
   const start = async () => {
     const s = newSession(tpl, date, { week, reducedSets: reduced, history: previous, dayContext: dayContext(days, date) });
     await put('sessions', s);
-    onOpen(s.id);
+    onOpen(s.id, true);
   };
   const omit = async () => {
     const s: WorkoutSession = { ...newSession(tpl, date, { week }), status: 'omitida', omitReason, finishedAt: Date.now() };
@@ -100,20 +103,24 @@ function StartPanel({ templates, programStart, sessions, date, onOpen, allSessio
   return (
     <>
       <section className="card hero stack">
-        <div className="row between"><p className="eyebrow">{formatLong(date)}</p><Chip tone="green">Semana {Math.min(week, PROGRAM_WEEKS)} de {PROGRAM_WEEKS}</Chip></div>
-        <h1 className="h1">{def ? tpl.name : 'Sin gimnasio programado'}</h1>
-        <p className="muted small">Bloque {block.n}: {block.name}{isDeloadWeek(week) ? ' · semana de descarga' : ''} · {preview.exercises.length} ejercicios · {totalSets} series · ≈ {minutes} min</p>
+        <div className="row between"><p className="eyebrow">Semana {Math.min(week, PROGRAM_WEEKS)} / {PROGRAM_WEEKS} · {block.name}{isDeloadWeek(week) ? ' · descarga' : ''}</p></div>
+        <h1 className="h1">{def ? tpl.name.split(' · ')[0] : 'Día libre'}</h1>
+        {def && <p className="ink2">{tpl.name.split(' · ')[1]}</p>}
+        <div className="hero-stats">
+          <div className="hero-stat"><div className="stat-label">Ejercicios</div><div className="stat-value">{preview.exercises.length}</div></div>
+          <div className="hero-stat"><div className="stat-label">Series</div><div className="stat-value">{totalSets}</div></div>
+          <div className="hero-stat"><div className="stat-label">Duración</div><div className="stat-value">{minutes}<small>min</small></div></div>
+        </div>
         {!def && <p className="muted small">Hoy no hay sesión en el programa (lunes a viernes). Si querés entrenar igual, elegí una.</p>}
         <Field label="Sesión">
           <select value={tplId} onChange={(e) => setTplId(e.target.value)}>
             {templates.map((t) => <option key={t.id} value={t.id}>{['Dom', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sáb'][t.weekday]} — {t.name}</option>)}
           </select>
         </Field>
-        <div className="note small" role="note">{PRECHECK_TEXT}</div>
-        <p className="small"><b>La app ya calculó tu sesión:</b> {totalSets} series en total, con repeticiones, kilos y descansos según la semana {Math.min(week, PROGRAM_WEEKS)} del programa. Solo seguilas.</p>
         <button className="btn primary block lg" onClick={start}>Empezar entrenamiento</button>
         <details className="opts">
-          <summary>Solo si hoy no estás bien</summary>
+          <summary>Antes de empezar · si hoy no estás bien</summary>
+          <p className="small muted">{PRECHECK_TEXT}</p>
           <label className="switch"><input type="checkbox" checked={reduced} onChange={(e) => setReduced(e.target.checked)} /><span>Una serie menos por ejercicio (enfermedad, mal descanso o dolor)</span></label>
         </details>
         <div className="row gap wrap">
@@ -129,9 +136,9 @@ function StartPanel({ templates, programStart, sessions, date, onOpen, allSessio
             const t = tpl.exercises.find((x) => x.id === e.exerciseId)!;
             return (
               <li key={e.exerciseId}>
-                <span className="ex-num" aria-hidden="true">{i + 1}</span>
+                <div className="rx-fig"><ExerciseAnim ex={{ id: e.exerciseId, name: e.name }} size={84} /><span className="rx-n">{String(i + 1).padStart(2, '0')}</span></div>
                 <div className="grow" style={{ minWidth: 0 }}>
-                  <div className="row between gap"><b>{e.name}</b><a className="yt" href={videoUrl(t.video)} target="_blank" rel="noopener noreferrer" aria-label={`Ver cómo se hace ${e.name} en YouTube`}>▶ Video</a></div>
+                  <div className="row between gap"><b>{e.name}</b><a className="yt" href={videoUrl(t.video)} target="_blank" rel="noopener noreferrer" aria-label={`Ver cómo se hace ${e.name} en YouTube`}>Video</a></div>
                   <div className="small muted">{t.muscle}</div>
                   <div className="rx-line">{rxSummary(e.target, t.perSide)} <span className={`rx-kind k-${e.target?.kind}`}>{e.target ? KIND_LABEL[e.target.kind] : ''}</span></div>
                 </div>
@@ -139,7 +146,7 @@ function StartPanel({ templates, programStart, sessions, date, onOpen, allSessio
             );
           })}
         </ol>
-        <p className="tiny muted">Los kilos salen de tu historial: si completás todas las series en el tope del rango, sin dolor y con margen, la próxima vez la app sube el peso mínimo disponible. Los videos abren una búsqueda en YouTube.</p>
+        <p className="tiny muted">Los kilos salen de tu historial: si completás todas las series en el tope del rango, sin dolor y con margen, la próxima vez sube el peso.</p>
       </section>
 
       {sessions.length > 0 && (
@@ -171,7 +178,7 @@ function StartPanel({ templates, programStart, sessions, date, onOpen, allSessio
 
 const exDone = (e: ExerciseLog) => !!e.skipped || doneSets(e).length >= e.plannedSets;
 
-function SessionView({ session, templates, allSessions, onClose }: Data & { session: WorkoutSession; onClose: () => void }) {
+function SessionView({ session, templates, allSessions, onClose, player, setPlayer }: Data & { session: WorkoutSession; onClose: () => void; player: boolean; setPlayer: (v: boolean) => void }) {
   const confirm = useConfirm();
   const tpl = templates.find((t) => t.id === session.templateId);
   const update = (fn: (s: WorkoutSession) => WorkoutSession) => put('sessions', { ...fn(structuredClone(session)), updatedAt: Date.now() });
@@ -205,6 +212,9 @@ function SessionView({ session, templates, allSessions, onClose }: Data & { sess
 
   return (
     <>
+      {player && session.status === 'en-curso' && (
+        <Player session={session} tpl={tpl} allSessions={allSessions} onClose={() => setPlayer(false)} onChangeEx={updEx} onFinish={async () => { setPlayer(false); await finish(); }} />
+      )}
       <section className="card hero stack">
         <div className="row between">
           <p className="eyebrow">{formatLong(session.date)}{session.week ? ` · semana ${session.week}` : ''}</p>
@@ -215,6 +225,7 @@ function SessionView({ session, templates, allSessions, onClose }: Data & { sess
           <div className="row between small"><span><b>{done}</b> de {totalSets} series{currentIdx >= 0 ? ` · ejercicio ${currentIdx + 1} de ${session.exercises.length}` : ' · ¡todo hecho!'}</span><span>{session.status === 'en-curso' ? `${elapsed} min` : ''}</span></div>
           <div className="bar"><i style={{ width: `${pct}%` }} /></div>
         </div>
+        {session.status === 'en-curso' && <button className="btn primary block lg" onClick={() => setPlayer(true)}>{done ? 'Seguir en modo entrenamiento' : 'Modo entrenamiento'}</button>}
         {session.blockName && <p className="small muted">Bloque: {session.blockName}{session.deload ? ' · descarga' : ''}. Dejá las repeticiones en reserva que indica cada ejercicio: no hace falta llegar al fallo.</p>}
         <div className="row gap wrap">
           <label className="switch"><input type="checkbox" checked={session.preCheck?.breathing === true} onChange={(e) => update((s) => ({ ...s, preCheck: { knee: s.preCheck?.knee ?? null, breathing: e.target.checked } }))} /><span>Respiración como siempre</span></label>
@@ -311,7 +322,8 @@ function ExerciseCard({ e, index, t, hist, state, expanded, onToggle, onChange, 
   return (
     <section id={`ex-${index}`} className={`card exercise s-${state}`}>
       {head}
-      {t && <a className="btn ghost small yt-btn" href={videoUrl(t.video)} target="_blank" rel="noopener noreferrer">▶ Ver cómo se hace (YouTube)</a>}
+      <div className="ex-fig"><ExerciseAnim ex={{ id: e.exerciseId, name: e.name }} size={230} /></div>
+      {t && <a className="btn ghost small yt-btn" href={videoUrl(t.video)} target="_blank" rel="noopener noreferrer">Ver video en YouTube</a>}
 
       {rx && (
         <div className={`rx-box k-${rx.kind}`}>
@@ -320,7 +332,7 @@ function ExerciseCard({ e, index, t, hist, state, expanded, onToggle, onChange, 
           <p className="tiny muted">Descanso entre series: {fmtRest([restSec, restSec])} · rango del ejercicio {rx.repMin}–{rx.repMax} reps</p>
         </div>
       )}
-      {t?.caution && <p className="small warn-text">⚠ {t.caution}</p>}
+      {t?.caution && <p className="small warn-text">{t.caution}</p>}
       <div className="lasttime">
         {last ? <><b>La última vez</b> ({formatShort(last.session.date)}): {describeSets(last.ex)}{last.ex.pain > 0 ? ` · molestia ${last.ex.pain}/10` : ''}</> : <span className="muted">Todavía sin registros de este ejercicio en la app.</span>}
       </div>
@@ -359,7 +371,7 @@ function ExerciseCard({ e, index, t, hist, state, expanded, onToggle, onChange, 
           );
         })}
         <p className="tiny muted">Series calculadas por la app. "Hecha" completa los casilleros vacíos con lo indicado; si hiciste otra cosa, cambiá los números.</p>
-        {editable && <button className="btn ghost small" onClick={() => startRest(restSec)}>⏱ Descanso {fmtRest([restSec, restSec])}</button>}
+        {editable && <button className="btn ghost small" onClick={() => startRest(restSec)}>Descanso {fmtRest([restSec, restSec])}</button>}
       </div>
 
       <div className="grid2">
@@ -418,7 +430,7 @@ function fmtRest([a, b]: [number, number]) {
 }
 
 /** Temporizador de descanso: guarda la hora de fin, así sobrevive a recargas. */
-function RestTimer() {
+function RestTimer({ hidden }: { hidden?: boolean }) {
   const t = useLive(() => kvGet<{ endAt: number; label: string; total: number } | null>('restTimer'), []);
   const now = useNow(500);
   const [notified, setNotified] = useState<number | null>(null);
@@ -429,7 +441,7 @@ function RestTimer() {
       try { navigator.vibrate?.([200, 100, 200]); } catch { /* sin vibración */ }
     }
   }, [left, t, notified]);
-  if (!t || left < -30) return null;
+  if (!t || left < -30 || hidden) return null;
   const mm = Math.floor(Math.max(0, left) / 60), ss = Math.max(0, left) % 60;
   return (
     <>
