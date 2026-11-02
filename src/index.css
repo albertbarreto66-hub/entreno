@@ -623,3 +623,23 @@ details.card.stack > summary + * { margin-top: 12px; }
 .fx-detail { stroke: #8d949e; stroke-width: .7; fill: none; stroke-linecap: round; }
 .fx-arrow path { fill: none; stroke: var(--brand); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: .55; }
 .fx-arrow path:first-child { stroke-dasharray: 3 3; }
+/* Equipamiento del gimnasio en las figuras */
+:root { --eq-frame: #5d6672; --eq-frame-hi: #7e8894; --eq-pad: #1d2127; --eq-pad-hi: #2f353e; --eq-plate: #2b3038; --eq-plate-ring: #444b55; --eq-metal: #a9b1bb; --eq-stack: #3a414b; --eq-stack-on: #59616c; }
+.eq-frame { stroke: var(--eq-frame); }
+.eq-foot { stroke: #2a2f36; }
+.eq-rod { stroke: #4b535d; }
+.eq-pad { stroke: var(--eq-pad); }
+.eq-pad-hi { stroke: var(--eq-pad-hi); }
+.eq-pad-fill { fill: var(--eq-pad); stroke: var(--eq-pad-hi); stroke-width: 1.2; }
+.eq-metal { fill: var(--eq-metal); }
+.eq-metal-line { stroke: var(--eq-metal); }
+.eq-pulley { fill: #2a2f36; stroke: var(--eq-frame-hi); stroke-width: 1.4; }
+.eq-cable { fill: none; stroke: #8f98a3; stroke-width: 1; stroke-linejoin: round; }
+.eq-plate { fill: var(--eq-plate); stroke: #59616c; stroke-width: 1; }
+.eq-plate-line { stroke: var(--eq-plate); }
+.eq-plate-ring { fill: none; stroke: var(--eq-plate-ring); stroke-width: 1.2; }
+.eq-stack { fill: var(--eq-stack); }
+.eq-stack-on { fill: var(--eq-stack-on); }
+.eq-grip { fill: #15181c; stroke: var(--eq-metal); stroke-width: 1.2; }
+.eq-grip-line { stroke: #15181c; }
+.eq-rope { stroke: #c9b78f; }
