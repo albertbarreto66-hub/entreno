@@ -46,7 +46,7 @@ export const DEFAULT_TEMPLATES: DayTemplate[] = [
     ],
   },
   {
-    id: 'martes', weekday: 2, name: 'Pierna A · Cuádriceps y glúteo', exercises: [
+    id: 'martes', weekday: 2, name: 'Pierna A · Cuádriceps, glúteo y abdomen', exercises: [
       ex({ id: 'm-prensa', name: 'Prensa 45°', muscle: 'Cuádriceps, glúteo', alternative: 'Prensa horizontal', sets: 3, repMin: 8, repMax: 12, main: true, incrementKg: 5,
         video: 'prensa 45 grados técnica correcta',
         how: 'Pies a la altura de los hombros, rodillas en la línea de los pies. Bajá hasta donde la zona lumbar siga apoyada. Exhalá al empujar.',
@@ -64,14 +64,14 @@ export const DEFAULT_TEMPLATES: DayTemplate[] = [
       ex({ id: 'm-gemelos', name: 'Gemelos sentado en máquina', muscle: 'Pantorrillas', alternative: 'Gemelos de pie en máquina', sets: 3, repMin: 12, repMax: 15, main: false,
         video: 'gemelos sentado en máquina técnica',
         how: 'Subí lo más alto posible, pausa, y bajá hasta estirar.', errors: 'Rebotar, recorrido corto.' }),
-      ex({ id: 'm-pallof', name: 'Pallof press', muscle: 'Core (antirrotación)', alternative: 'Plancha frontal', sets: 2, repMin: 10, repMax: 12, perSide: true, main: false,
-        video: 'pallof press técnica',
-        how: 'De costado a la polea, llevá el agarre al frente del pecho y estirá los brazos resistiendo el giro. Respirá normal.',
-        errors: 'Girar el torso, contener la respiración.' }),
+      ex({ id: 'm-elevacion-piernas', name: 'Elevación de piernas en paralelas', muscle: 'Recto abdominal (zona baja), core', alternative: 'Crunch inverso en banco', sets: 3, repMin: 10, repMax: 15, main: false,
+        video: 'elevación de piernas en paralelas abdominales técnica',
+        how: 'Antebrazos apoyados, espalda contra el respaldo. Subí las rodillas llevando la pelvis hacia arriba (no solo las piernas) y bajá lento sin balancear. Exhalá al subir.',
+        errors: 'Balancearse, subir solo las piernas sin enrollar la pelvis. (Entrena el músculo: el abdomen se ve cuando baja la grasa.)' }),
     ],
   },
   {
-    id: 'miercoles', weekday: 3, name: 'Torso B · Espalda ancha y bíceps', exercises: [
+    id: 'miercoles', weekday: 3, name: 'Torso B · Espalda ancha, hombros y bíceps', exercises: [
       ex({ id: 'x-jalon-neutro', name: 'Jalón agarre neutro cerrado', muscle: 'Dorsal ancho', alternative: 'Dominadas asistidas en máquina', sets: 3, repMin: 6, repMax: 10, main: true, priority: true,
         video: 'jalón agarre neutro cerrado técnica',
         how: 'Pecho alto, bajá llevando los codos hacia las costillas. Pausa abajo, subí controlando.', errors: 'Balancearte, recorrido corto arriba.' }),
@@ -81,9 +81,10 @@ export const DEFAULT_TEMPLATES: DayTemplate[] = [
       ex({ id: 'x-press-hombro', name: 'Press de hombro en máquina', muscle: 'Hombro anterior y lateral', alternative: 'Press de hombro con mancuernas sentado', sets: 3, repMin: 8, repMax: 12, main: false, priority: true, incrementKg: 2.5,
         video: 'press de hombro en máquina técnica',
         how: 'Espalda apoyada, empujá hacia arriba sin bloquear de golpe, bajá hasta la altura de las orejas.', errors: 'Arquear la zona lumbar, recorrido corto.', caution: WRIST }),
-      ex({ id: 'x-pullover-polea', name: 'Pullover en polea alta', muscle: 'Dorsal ancho', alternative: 'Pullover con mancuerna', sets: 2, repMin: 12, repMax: 15, main: false,
-        video: 'pullover en polea alta dorsales técnica',
-        how: 'Brazos casi estirados, llevá la barra o cuerda desde arriba hasta los muslos con el dorsal. Volvé lento.', errors: 'Doblar los codos y convertirlo en tríceps, balancearte.' }),
+      ex({ id: 'x-laterales-manc', name: 'Elevaciones laterales con mancuernas', muscle: 'Hombro lateral (ancho de hombros)', alternative: 'Elevaciones laterales en polea', sets: 3, repMin: 12, repMax: 20, main: false, priority: true,
+        video: 'elevaciones laterales con mancuernas técnica correcta',
+        how: 'Torso apenas inclinado adelante. Subí las mancuernas hacia los costados hasta la altura de los hombros, con los codos apenas flexionados; bajá en 2–3 segundos.',
+        errors: 'Encoger los hombros, balancear el cuerpo, usar demasiado peso.' }),
       ex({ id: 'x-face-pull', name: 'Face pull', muscle: 'Hombro posterior, postura', alternative: 'Pájaro en máquina (hombro posterior)', sets: 2, repMin: 12, repMax: 15, main: false,
         video: 'face pull técnica correcta',
         how: 'Polea a la altura de la cara. Tirá la cuerda hacia la frente separando las manos y rotando hacia afuera.', errors: 'Tirar con la espalda baja, usar demasiado peso.' }),
@@ -128,7 +129,7 @@ export const DEFAULT_TEMPLATES: DayTemplate[] = [
       ex({ id: 'v-laterales-maq', name: 'Elevaciones laterales en máquina', muscle: 'Hombro lateral', alternative: 'Elevaciones laterales con mancuernas', sets: 3, repMin: 12, repMax: 20, main: false, priority: true,
         video: 'elevaciones laterales en máquina técnica',
         how: 'Codos apoyados en las almohadillas, subí hasta la altura de los hombros, bajada lenta.', errors: 'Encoger los hombros, balancear.' }),
-      ex({ id: 'v-cruce-bajo-alto', name: 'Cruce de poleas de abajo hacia arriba', muscle: 'Pecho superior', alternative: 'Pec deck', sets: 2, repMin: 12, repMax: 15, main: false,
+      ex({ id: 'v-cruce-bajo-alto', name: 'Cruce de poleas de abajo hacia arriba', muscle: 'Pecho superior', alternative: 'Pec deck', sets: 2, repMin: 12, repMax: 15, main: false, priority: true,
         video: 'cruce de poleas de abajo hacia arriba pecho superior',
         how: 'Poleas bajas, llevá las manos hacia arriba y al centro a la altura del mentón, apretando el pecho.', errors: 'Doblar mucho los codos, usar demasiado peso.' }),
       ex({ id: 'v-curl-martillo', name: 'Curl martillo con mancuernas', muscle: 'Bíceps, braquial, antebrazo', alternative: 'Curl martillo en polea con cuerda', sets: 3, repMin: 10, repMax: 12, main: false, priority: true,

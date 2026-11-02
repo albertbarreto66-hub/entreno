@@ -182,6 +182,19 @@ export function ProgramView() {
       </section>
 
       <section className="card stack">
+        <h2 className="h2">Meta a largo plazo: físico atlético y marcado</h2>
+        <p className="small">Hombros redondos y anchos, pecho superior lleno, brazos grandes, espalda en V y abdomen marcado. Ese aspecto depende de dos cosas: <b>grasa corporal baja (≈ 10–13 %)</b> y <b>músculo en los lugares que dan forma</b> (hombro lateral, pecho superior, brazos, dorsales, abdomen). Por eso la rutina prioriza esos grupos todas las semanas.</p>
+        {d.profile.heightCm ? <p className="small">Indicador concreto: cintura ≈ <b>{Math.round(d.profile.heightCm * 0.45)} cm</b> o menos (cintura/altura ≤ 0,45){lastWaist ? `; hoy: ${n1(lastWaist)} cm` : ''}. El peso final se decide por cintura, fotos y fuerza, no por un número fijo.</p> : null}
+        <ol className="list small">
+          <li><b>Meses 0–6 (este programa):</b> bajar la mayor parte de la grasa, recuperar y sumar fuerza.</li>
+          <li><b>Meses 6–12:</b> seguir en déficit moderado con pausas en mantenimiento hasta que el abdomen se empiece a marcar (≈ 15 % de grasa).</li>
+          <li><b>Meses 12–18:</b> llegar a ≈ 10–13 % (abdominales visibles) cuidando la fuerza.</li>
+          <li><b>Después:</b> etapas de volumen limpio (subir ≈ 0,25–0,5 % del peso por mes) para sumar músculo, alternadas con definiciones cortas.</li>
+        </ol>
+        <p className="small muted">Partiendo de 28–35 % de grasa, llegar a ese nivel suele llevar entre 1,5 y 3 años de constancia. Las fotos de redes son el mejor día, con luz, ángulo y "pump" a favor, y no muestran cómo se llegó; compararte con tus propias fotos es la medida real.</p>
+      </section>
+
+      <section className="card stack">
         <h2 className="h2">Calorías y macros</h2>
         {plan ? (
           <>
