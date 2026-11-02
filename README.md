@@ -22,8 +22,8 @@ Nota: los service workers (modo sin conexión) solo funcionan en `localhost` o c
 ## Pruebas
 
 ```bash
-npm test             # 65 pruebas unitarias: fechas, metas, pasos, progresión, nutrición, tendencias, persistencia, respaldo, importación de Salud
-npm run test:e2e     # 8 pruebas de punta a punta en Chromium con pantalla de iPhone
+npm test             # 69 pruebas unitarias: fechas, metas, pasos, progresión, nutrición, tendencias, persistencia, respaldo, importación de Salud
+npm run test:e2e     # 9 pruebas de punta a punta en Chromium con pantalla de iPhone
 ```
 
 Si Playwright no encuentra Chromium, definí `CHROME_PATH` con la ruta a un Chrome/Chromium instalado.
@@ -57,6 +57,15 @@ El ZIP contiene:
 En la app iOS el ZIP se guarda en Archivos → En mi iPhone → Entreno y se abre la hoja de compartir.
 
 > Los datos locales pueden perderse si borrás los datos del navegador o del sitio, desinstalás la app o el sistema libera espacio. Exportá respaldos con frecuencia. No hay sincronización entre dispositivos.
+
+## Garmin sin Mac: Atajo de iPhone
+
+Una página web no puede leer Salud, pero la app **Atajos** sí. El Atajo **"Entreno Garmin"** busca en Salud los pasos de hoy (filtrando por fuente Garmin, para no sumar los del iPhone) y, si querés, la FC en reposo y el sueño. Con eso arma un texto como `fecha=2026-11-02; pasos=12345; sueno=7,4; fc=62` y lo copia. En la app: **1 · Ejecutar Atajo → 2 · Pegar datos de Garmin**. Las instrucciones paso a paso están en Ajustes → Salud y Garmin.
+
+- Importar el mismo día de nuevo reemplaza los datos: no duplica (`src/health/shortcutImport.ts`).
+- Los pasos importados cuentan como dato del reloj y completan la meta.
+- También acepta el link `#/importar?pasos=…`. Desde Atajos, ese link abre Safari, que guarda sus datos separados de la app instalada.
+- Pendiente de probar en un iPhone real: los nombres exactos de los menús de Atajos y el formato que devuelve la suma de sueño.
 
 ## Versión iOS con Garmin (Garmin → Garmin Connect → Salud → Entreno)
 

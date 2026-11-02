@@ -46,6 +46,16 @@ export default function App() {
         navigator.storage?.persisted?.().then((p) => { if (!p) navigator.storage.persist?.(); }).catch(() => {});
       })
       .catch((e) => setErr(String(e?.message ?? e)));
+    // Datos del Atajo de Garmin recibidos por link: #/importar?pasos=...&sueno=...&fc=...
+    if (location.hash.startsWith('#/importar?')) {
+      const q = location.hash.slice(location.hash.indexOf('?') + 1);
+      import('./health/shortcutImport').then(async ({ parseShortcutText, importShortcutData }) => {
+        await ensureInitialized();
+        const r = parseShortcutText(q, todayKey());
+        if (!('error' in r)) await importShortcutData(r);
+        location.hash = '#/hoy';
+      });
+    }
     const h = () => setRoute(readHash());
     window.addEventListener('hashchange', h);
     return () => window.removeEventListener('hashchange', h);

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { GarminShortcutImport } from '../components/GarminShortcut';
 import { Chip, Field, Segmented, useConfirm, useToast } from '../components/ui';
 import { KIND_LABEL } from '../health/classify';
 import { HealthBridge, hasHealthBridge } from '../health/plugin';
@@ -42,9 +43,13 @@ export function HealthPanel() {
       <p className="small">Flujo: <b>reloj Garmin → Garmin Connect → app Salud (Apple Health) → esta app</b>, solo lectura.</p>
 
       {!native ? (
-        <div className="note small">
-          <p><b>En el navegador no hay acceso a Salud.</b> Apple no permite que una página web o PWA lea HealthKit. Para importar los datos del reloj hace falta la versión iOS de esta app (incluida en el proyecto, carpeta <code>ios/</code>), instalada desde Xcode en tu iPhone.</p>
-          <p>Mientras tanto, el registro manual de pasos, sueño y entrenamientos funciona completo.</p>
+        <div className="stack">
+          <div className="note small">
+            <p><b>Conectar Garmin sin Mac:</b> una página web no puede leer Salud directamente, pero la app <b>Atajos</b> de tu iPhone sí. El Atajo lee lo que Garmin Connect dejó en Salud y vos lo pegás acá con un toque.</p>
+            <p>Si en algún momento instalás la versión iOS desde una Mac (carpeta <code>ios/</code>), la sincronización es automática.</p>
+          </div>
+          <GarminShortcutImport />
+          {meta.lastSync && <p className="small">Última importación: <b>{formatDateTime(meta.lastSync)}</b></p>}
         </div>
       ) : (
         <>

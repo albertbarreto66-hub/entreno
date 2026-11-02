@@ -133,7 +133,7 @@ export interface BodyLog { id: string; date: string; weightKg?: number | null; w
 export type PhotoPose = 'frente' | 'perfil' | 'espalda';
 export interface PhotoRec {
   id: string;
-  kind: 'progreso' | 'comida';
+  kind: 'progreso' | 'comida' | 'objetivo';
   date: string;
   pose?: PhotoPose;
   blob: Blob;

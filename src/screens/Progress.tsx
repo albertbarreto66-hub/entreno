@@ -234,6 +234,7 @@ function Photos() {
         <p className="small muted">Para comparar mejor: misma luz, misma distancia, misma postura y mismo horario (por ejemplo, el lunes al levantarte). Las fotos quedan solo en este dispositivo. La app no estima grasa corporal ni saca conclusiones de las imágenes.</p>
         <button className="btn primary block" onClick={() => setAddOpen(true)}>+ Agregar foto</button>
       </section>
+      <GoalPhotos mine={photos} />
       {photos.length >= 2 ? <Compare photos={photos} /> : <Empty>Con dos fotos de la misma pose vas a poder compararlas lado a lado o con deslizador.</Empty>}
       {[...byWeek].map(([w, ps]) => (
         <section className="card" key={w}>
@@ -250,9 +251,9 @@ function Photos() {
 function Thumb({ p, onClick }: { p: PhotoRec; onClick: () => void }) {
   const url = usePhotoUrl(p);
   return (
-    <button className="thumb" onClick={onClick} aria-label={`Foto ${p.pose} del ${formatShort(p.date)}`}>
+    <button className="thumb" onClick={onClick} aria-label={`Foto ${p.pose ?? "de referencia"} del ${formatShort(p.date)}`}>
       {url && <img src={url} alt="" />}
-      <span>{p.pose} · {formatShort(p.date)}</span>
+      <span>{p.pose ?? "objetivo"} · {formatShort(p.date)}</span>
     </button>
   );
 }
@@ -299,7 +300,7 @@ function PhotoView({ p, onClose }: { p: PhotoRec; onClose: () => void }) {
   const confirm = useConfirm();
   const toast = useToast();
   return (
-    <Sheet open onClose={onClose} title={`${p.pose} · ${formatLong(p.date)}`}>
+    <Sheet open onClose={onClose} title={`${p.pose ?? "Referencia"} · ${formatLong(p.date)}`}>
       {url && <img className="full" src={url} alt={`Foto ${p.pose}`} />}
       <p className="small">{p.weightKg != null ? `${n1(p.weightKg)} kg · ` : ''}{p.waistCm != null ? `${n1(p.waistCm)} cm · ` : ''}{p.note}</p>
       <div className="row gap">
@@ -347,6 +348,54 @@ function Compare({ photos }: { photos: PhotoRec[] }) {
         </>
       )}
       <p className="tiny muted">Las fotos se muestran completas y sin estirar; si tienen proporciones distintas, queda espacio en los bordes.</p>
+    </section>
+  );
+}
+
+/** Fotos de referencia del físico que buscás (solo en este dispositivo) y comparación con la tuya más reciente. */
+function GoalPhotos({ mine }: { mine: PhotoRec[] }) {
+  const goals = useLive(async () => (await all('photos')).filter((p) => p.kind === 'objetivo').sort((a, b) => b.at - a.at), []);
+  const [gid, setGid] = useState('');
+  const [mid, setMid] = useState('');
+  const [view, setView] = useState<PhotoRec | null>(null);
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+  const g = goals?.find((x) => x.id === gid) ?? goals?.[0];
+  const m = mine.find((x) => x.id === mid) ?? mine[0];
+  const ug = usePhotoUrl(g), um = usePhotoUrl(m);
+  if (!goals) return null;
+  const add = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setBusy(true);
+    try {
+      for (const f of Array.from(files)) {
+        const img = await compressImage(f);
+        await put('photos', { id: uid(), kind: 'objetivo', date: new Date().toISOString().slice(0, 10), blob: img.blob, type: img.type, width: img.width, height: img.height, note: 'Físico objetivo', at: Date.now() });
+      }
+    } catch (e) {
+      toast(isQuotaError(e) ? 'No hay espacio para guardar la foto.' : (e as Error).message || 'No se pudo guardar la foto.', 'error');
+    } finally { setBusy(false); }
+  };
+  return (
+    <section className="card stack">
+      <h2 className="h2"><IconBadge tone="steps" size="sm"><IconCamera /></IconBadge>Físico objetivo</h2>
+      <p className="small muted">Guardá capturas del físico que buscás. Quedan solo en este teléfono (no se suben a ningún lado) y sirven de dirección: compará tu avance con tus propias fotos.</p>
+      <label className={`btn secondary block ${busy ? 'disabled' : ''}`}>+ Agregar fotos de referencia<input hidden type="file" accept="image/*" multiple onChange={(e) => { add(e.target.files); e.target.value = ''; }} data-testid="goal-input" /></label>
+      {goals.length > 0 && <div className="thumbs">{goals.map((p) => <Thumb key={p.id} p={p} onClick={() => setView(p)} />)}</div>}
+      {g && m && (
+        <>
+          <div className="row gap">
+            <Field label="Tu foto"><select value={m.id} onChange={(e) => setMid(e.target.value)}>{mine.map((p) => <option key={p.id} value={p.id}>{p.pose} · {formatShort(p.date)}</option>)}</select></Field>
+            <Field label="Referencia"><select value={g.id} onChange={(e) => setGid(e.target.value)}>{goals.map((p, i) => <option key={p.id} value={p.id}>Referencia {goals.length - i}</option>)}</select></Field>
+          </div>
+          <div className="side">
+            <figure><div className="frame">{um && <img src={um} alt="Tu foto" />}</div><figcaption>Vos · {formatShort(m.date)}</figcaption></figure>
+            <figure><div className="frame">{ug && <img src={ug} alt="Físico objetivo" />}</div><figcaption>Objetivo</figcaption></figure>
+          </div>
+        </>
+      )}
+      {goals.length > 0 && !m && <p className="small muted">Agregá una foto tuya abajo para compararla con la referencia.</p>}
+      {view && <PhotoView p={view} onClose={() => setView(null)} />}
     </section>
   );
 }

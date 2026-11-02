@@ -192,7 +192,7 @@ test('8 y 9. todas las pantallas en móvil, sin scroll horizontal ni errores', a
   await page.goto('/#/comidas');
   for (const t of ['Menú', 'Compras', 'Preparación']) { await page.getByRole('radio', { name: t }).click(); await noHorizontalScroll(page); }
   await page.goto('/#/ajustes');
-  await expect(page.getByText(/requiere la versión iOS|En el navegador no hay acceso a Salud/).first()).toBeVisible();
+  await expect(page.getByText(/Conectar Garmin sin Mac/).first()).toBeVisible();
   await expect(page.getByText(/Los datos locales pueden perderse/)).toBeVisible();
 });
 
@@ -253,4 +253,27 @@ test('programa: aplicar, sesión guiada con "Hecha" que completa lo indicado y c
   await d.getByRole('button', { name: 'Guardar' }).click();
   await page.getByRole('radio', { name: 'Gráficos' }).click();
   await expect(page.getByRole('img', { name: 'Pecho y bíceps' })).toBeVisible();
+});
+
+test('Garmin vía Atajo: pegar datos completa la meta de pasos; fotos de referencia del objetivo', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await fresh(page);
+  await page.evaluate(() => navigator.clipboard.writeText('pasos=16.200; sueno=7,4; fc=63'));
+  await page.getByRole('button', { name: 'Pasos' }).first().click();
+  await page.getByRole('dialog', { name: 'Pasos' }).getByRole('button', { name: '2 · Pegar datos de Garmin' }).click();
+  await expect(page.getByRole('dialog', { name: 'Pasos' })).toContainText('16.200');
+  await page.getByRole('dialog', { name: 'Pasos' }).getByRole('button', { name: 'Cerrar' }).click();
+  await expect(page.getByRole('button', { name: /Meta de pasos alcanzada/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: /Sueño registrado/ })).toContainText('7,4');
+  // Repetir no duplica
+  await page.getByRole('button', { name: 'Pasos' }).first().click();
+  await page.getByRole('dialog', { name: 'Pasos' }).getByRole('button', { name: '2 · Pegar datos de Garmin' }).click();
+  await expect(page.getByRole('dialog', { name: 'Pasos' })).toContainText('16.200');
+  await page.getByRole('dialog', { name: 'Pasos' }).getByRole('button', { name: 'Cerrar' }).click();
+
+  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Progreso' }).click();
+  await page.getByRole('radio', { name: 'Fotos' }).click();
+  await page.getByTestId('goal-input').setInputFiles(path.join('public', 'icon-512.png'));
+  await expect(page.getByText('Físico objetivo').first()).toBeVisible();
+  await expect(page.locator('.thumb')).toHaveCount(1);
 });

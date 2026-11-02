@@ -110,8 +110,12 @@ function StartPanel({ templates, programStart, sessions, date, onOpen, allSessio
           </select>
         </Field>
         <div className="note small" role="note">{PRECHECK_TEXT}</div>
-        <label className="switch"><input type="checkbox" checked={reduced} onChange={(e) => setReduced(e.target.checked)} /><span>Hoy estoy cansado: una serie menos por ejercicio</span></label>
+        <p className="small"><b>La app ya calculó tu sesión:</b> {totalSets} series en total, con repeticiones, kilos y descansos según la semana {Math.min(week, PROGRAM_WEEKS)} del programa. Solo seguilas.</p>
         <button className="btn primary block lg" onClick={start}>Empezar entrenamiento</button>
+        <details className="opts">
+          <summary>Solo si hoy no estás bien</summary>
+          <label className="switch"><input type="checkbox" checked={reduced} onChange={(e) => setReduced(e.target.checked)} /><span>Una serie menos por ejercicio (enfermedad, mal descanso o dolor)</span></label>
+        </details>
         <div className="row gap wrap">
           <button className="btn secondary grow" onClick={() => setOmitOpen(true)}>Omitir / descanso</button>
           <button className="btn ghost grow" onClick={markNoDetail}>Hecho sin registrar series</button>
@@ -354,14 +358,8 @@ function ExerciseCard({ e, index, t, hist, state, expanded, onToggle, onChange, 
             </div>
           );
         })}
-        <p className="tiny muted">"Hecha" completa los casilleros vacíos con lo indicado. Si hiciste otra cosa, cambiá los números.</p>
-        {editable && (
-          <div className="row gap wrap">
-            <button className="btn ghost small" onClick={() => onChange((x) => { x.sets.push({ kg: x.sets.at(-1)?.kg ?? null, reps: null, rir: null, done: false }); x.plannedSets = Math.max(x.plannedSets, x.sets.length); })}>+ Serie</button>
-            {e.sets.length > 1 && <button className="btn ghost small" onClick={() => onChange((x) => { x.sets.pop(); x.plannedSets = Math.min(x.plannedSets, x.sets.length); })}>− Serie</button>}
-            <button className="btn ghost small" onClick={() => startRest(restSec)}>⏱ Descanso {fmtRest([restSec, restSec])}</button>
-          </div>
-        )}
+        <p className="tiny muted">Series calculadas por la app. "Hecha" completa los casilleros vacíos con lo indicado; si hiciste otra cosa, cambiá los números.</p>
+        {editable && <button className="btn ghost small" onClick={() => startRest(restSec)}>⏱ Descanso {fmtRest([restSec, restSec])}</button>}
       </div>
 
       <div className="grid2">

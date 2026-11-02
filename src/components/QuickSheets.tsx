@@ -7,6 +7,7 @@ import { byDate, del, patchDay, put } from '../lib/db';
 import { n0, n1, parseIntLoose, parseNum, uid } from '../lib/format';
 import type { DaySummary } from '../lib/summary';
 import type { FluidKind } from '../lib/types';
+import { GarminShortcutImport } from './GarminShortcut';
 import { Chip, CountUp, Field, Segmented, Sheet, useConfirm, useToast } from './ui';
 
 export function sourceChip(origin: string | null) {
@@ -108,6 +109,7 @@ export function StepsSheet({ open, onClose, s }: { open: boolean; onClose: () =>
         <li>iPhone: {st.phone != null ? n0(st.phone) : 'sin datos disponibles'}</li>
         <li>Manual: {st.manual != null ? n0(st.manual) : 'sin registro'}</li>
       </ul>
+      {!hasHealthBridge() && <GarminShortcutImport compact />}
       {s.settings.stepGoalBasis === 'reloj' && <p className="note small">La meta se evalúa solo con datos del reloj: los registros manuales se guardan pero no la completan.</p>}
       <Field label="Registrar pasos manualmente (total del día)">
         <input inputMode="numeric" placeholder="Ej.: 9500" value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} />
@@ -117,7 +119,7 @@ export function StepsSheet({ open, onClose, s }: { open: boolean; onClose: () =>
         {st.manual != null && <button className="btn ghost" onClick={async () => { if (await confirm({ title: 'Borrar el registro manual de pasos?', ok: 'Borrar', danger: true })) { await patchDay(s.date, { stepsManual: null }); } }}>Borrar manual</button>}
       </div>
       <p className="small muted">
-        {hasHealthBridge() ? 'Los datos del reloj se importan desde Salud en Ajustes › Salud.' : 'En el navegador no hay conexión con Salud, Garmin ni sensores: el registro es manual. La importación desde Garmin requiere la versión iOS.'}
+        {hasHealthBridge() ? 'Los datos del reloj se importan desde Salud en Ajustes › Salud.' : 'Garmin se importa con el Atajo (instrucciones en Ajustes › Salud y Garmin). Si no, podés cargar los pasos a mano.'}
         {' '}No se muestra distancia porque no hay un dato real de distancia.
       </p>
     </Sheet>
