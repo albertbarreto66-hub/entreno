@@ -277,3 +277,19 @@ test('Garmin vía Atajo: pegar datos completa la meta de pasos; fotos de referen
   await expect(page.getByText('Físico objetivo').first()).toBeVisible();
   await expect(page.locator('.thumb')).toHaveCount(1);
 });
+
+test('avisos en Calendario: el archivo .ics se publica y el service worker no lo reemplaza por la app', async ({ page }) => {
+  await fresh(page);
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await page.reload();
+  await page.goto('/#/ajustes');
+  const link = page.getByRole('link', { name: 'Agregar avisos al Calendario' });
+  await expect(link).toHaveAttribute('href', './recordatorios.ics');
+  const txt = await page.evaluate(async () => (await fetch('./recordatorios.ics', { mode: 'same-origin' })).text());
+  expect(txt.startsWith('BEGIN:VCALENDAR')).toBe(true);
+  const res = await page.request.get('/recordatorios.ics');
+  expect(res.headers()['content-type']).toContain('calendar');
+  // Al navegar al archivo (con el service worker activo) se entrega el calendario, no la app
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.goto('/recordatorios.ics').catch(() => null)]);
+  expect(dl.suggestedFilename()).toBe('recordatorios.ics');
+});

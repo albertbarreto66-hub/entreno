@@ -6,7 +6,7 @@ import { DEFAULT_TEMPLATES } from '../data/templates';
 import { DEFAULT_SCHEDULE, STEP_GOAL_MAX } from '../data/profile';
 import { getProfile, getSchedule, getSettings, patchSettings } from '../lib/app';
 import { applyBackup, backupFileName, currentCounts, exportBackup, isProfileOnly, mergeProfile, parseBackup, wipeAll, type ParsedBackup } from '../lib/backup';
-import { formatDateTime, formatShort } from '../lib/dates';
+import { formatDateTime, formatShort, todayKey } from '../lib/dates';
 import { all, kvGet, kvSet } from '../lib/db';
 import { saveFile } from '../lib/files';
 import { n0, uid } from '../lib/format';
@@ -14,6 +14,7 @@ import { setGoal } from '../lib/goals';
 import { useLive } from '../lib/hooks';
 import { applyReminders, notificationSupport, requestPermission } from '../lib/notify';
 import { getTemplates } from '../lib/training';
+import { buildIcs } from '../lib/ics';
 import type { DayTemplate, GoalKind, Profile, ScheduleItem } from '../lib/types';
 import { HealthPanel } from './HealthPanel';
 import { checkForUpdate } from '../lib/update';
@@ -166,12 +167,57 @@ function ScheduleSection() {
         <button className="btn ghost small" onClick={() => save(DEFAULT_SCHEDULE)}>Restaurar horario inicial</button>
       </div>
       <label className="switch"><input type="checkbox" checked={s.systemNotifications} disabled={support === 'no'} onChange={(e) => toggleSystem(e.target.checked)} /><span>Avisos del sistema para los ítems marcados</span></label>
+      <CalendarReminders items={items} />
       <p className="small muted">
         {support === 'nativo' && 'En la app iOS son notificaciones locales programadas: llegan aunque la app esté cerrada.'}
         {support === 'navegador' && 'En el navegador o la app instalada desde Safari, los avisos solo funcionan mientras la app está abierta (no hay servidor de notificaciones). En iPhone, además, requiere agregarla a la pantalla de inicio.'}
         {support === 'no' && 'Este navegador no permite notificaciones.'}
       </p>
     </section>
+  );
+}
+
+function CalendarReminders({ items }: { items: ScheduleItem[] }) {
+  const toast = useToast();
+  const custom = async () => {
+    const ics = buildIcs(items, { startDate: todayKey(), appUrl: location.origin + location.pathname, water: true });
+    toast(await saveFile(new Blob([ics], { type: 'text/calendar' }), 'entreno-recordatorios.ics'));
+  };
+  return (
+    <div className="stack reminders">
+      <h3 className="h3">Avisos con la app cerrada</h3>
+      <p className="small">Agregá tu horario al <b>Calendario del iPhone</b>: te avisa comidas, gimnasio (lunes a viernes), último mate, caminata, hora de dormir y 4 recordatorios de agua, todos los días y aunque la app esté cerrada.</p>
+      <a className="btn primary block" href="./recordatorios.ics" target="_blank" rel="noopener">Agregar avisos al Calendario</a>
+      <div className="row gap wrap">
+        <a className="btn ghost small" href="./recordatorios-sin-agua.ics" target="_blank" rel="noopener">Sin avisos de agua</a>
+        <button className="btn ghost small" onClick={custom}>Con mi horario editado</button>
+      </div>
+      <details className="howto">
+        <summary>Cómo queda y cómo quitarlo</summary>
+        <ul className="list small">
+          <li>Se abre Safari con la lista de eventos: tocá <b>Agregar todos</b> y elegí un calendario (podés crear uno llamado "Entreno").</li>
+          <li>Tienen que estar activas las notificaciones de <b>Calendario</b> (Ajustes del iPhone → Notificaciones → Calendario).</li>
+          <li>Si cambiás tu horario, borrá los eventos viejos (o el calendario "Entreno") y volvé a agregarlos.</li>
+          <li>Son avisos con notificación, no alarmas con sonido fuerte: para despertarte usá la alarma del iPhone.</li>
+        </ul>
+      </details>
+      <details className="howto">
+        <summary>Despertador y hora de dormir (recomendado)</summary>
+        <ul className="list small">
+          <li>App <b>Salud → Sueño → Programa de sueño</b>: hora de despertar <b>08:00</b> con alarma y hora de dormir; activá <b>Relajación</b> 30 minutos antes. Suena aunque el iPhone esté en silencio.</li>
+          <li>Si te dormís muy tarde, adelantá la hora de dormir 30 minutos por semana; la de despertar queda fija.</li>
+        </ul>
+      </details>
+      <details className="howto">
+        <summary>Aviso inteligente: "todavía no caminaste" (Atajos + Garmin)</summary>
+        <ol className="list small">
+          <li>En <b>Atajos</b> → <b>+</b> → "Describir un atajo", pegá: <code>Busca las muestras de Salud de tipo Pasos de hoy cuya fuente sea Connect y calcula la suma. Si la suma es menor que 10000, muestra una notificación que diga "Llevás" la suma "pasos: salí a caminar 30 minutos".</code></li>
+          <li>Nombralo <b>Entreno Caminata</b>.</li>
+          <li>Pestaña <b>Automatización</b> → <b>+</b> → <b>Hora del día</b> → 19:00 → <b>Ejecutar inmediatamente</b> → elegí el atajo "Entreno Caminata".</li>
+          <li>Así solo te avisa los días que te faltan pasos. Cambiá 10000 por tu meta si querés.</li>
+        </ol>
+      </details>
+    </div>
   );
 }
 
