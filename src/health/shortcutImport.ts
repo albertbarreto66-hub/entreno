@@ -23,6 +23,12 @@ const num = (v: string | undefined) => {
 export function parseShortcutText(text: string, today: string): ShortcutData | { error: string } {
   const raw = text.trim();
   if (!raw) return { error: 'No hay texto para importar.' };
+  // Solo un número (por ejemplo, el atajo copió la suma de pasos tal cual): se toma como pasos de hoy.
+  if (/^[\d.,\s]+$/.test(raw)) {
+    const n = num(raw);
+    if (n == null || n < 0 || n > 150000) return { error: 'El número copiado no parece una cantidad de pasos.' };
+    return { date: today, steps: Math.round(n), sleepH: null, restingHr: null };
+  }
   const kv: Record<string, string> = {};
   try {
     const j = JSON.parse(raw);

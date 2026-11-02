@@ -13,6 +13,11 @@ describe('texto del Atajo', () => {
     expect(parseShortcutText('fecha=2026-11-02; pasos=12.345; sueno=7,5; fc=62', today)).toEqual({ date: today, steps: 12345, sleepH: 7.5, restingHr: 62 });
     expect(parseShortcutText('pasos: 9876\nfc: 70', today)).toEqual({ date: today, steps: 9876, sleepH: null, restingHr: 70 });
   });
+  it('acepta solo el número de pasos (como lo copia el atajo armado por Atajos)', () => {
+    expect(parseShortcutText('12345', today)).toEqual({ date: today, steps: 12345, sleepH: null, restingHr: null });
+    expect(parseShortcutText(' 9.876 ', today)).toMatchObject({ steps: 9876 });
+    expect(parseShortcutText('12345,6', today)).toMatchObject({ steps: 12346 });
+  });
   it('acepta JSON y link con parámetros', () => {
     expect(parseShortcutText('{"fecha":"2026-11-01","pasos":11000}', today)).toMatchObject({ date: '2026-11-01', steps: 11000 });
     expect(parseShortcutText('https://x/#/importar?pasos=8000&sueno=420', today)).toMatchObject({ steps: 8000, sleepH: 7 });
